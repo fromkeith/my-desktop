@@ -4,6 +4,7 @@
     import Window from "$lib/my-components/Window.svelte";
     import EmailRow from "$lib/my-components/EmailRow.svelte";
     import EmailContents from "$lib/my-components/EmailContents.svelte";
+    import ComposeEmailContents from "$lib/my-components/ComposeEmailContents.svelte";
 </script>
 
 <main class="w-screen h-screen">
@@ -21,9 +22,10 @@
         </div>
     </Window>
     <Window>
-        <div slot="content">
-            <EmailContents />
-        </div>
+        <EmailContents slot="content" />
+    </Window>
+    <Window scrollable={false}>
+        <ComposeEmailContents slot="content" />
     </Window>
 
     <p></p>

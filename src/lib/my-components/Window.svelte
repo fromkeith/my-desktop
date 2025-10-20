@@ -3,6 +3,8 @@
     import * as Card from "$lib/components/ui/card/index.js";
     import WindowBar from "$lib/my-components/WindowBar.svelte";
 
+    export let scrollable = true;
+
     let width = 500;
     let height = 500;
     let x = 0;
@@ -102,10 +104,14 @@
                 <WindowBar on:move={move} {x} {y} />
             </Card.Header>
 
-            <Card.Content class="overflow-hidden">
-                <ScrollArea class="h-full">
+            <Card.Content class="overflow-hidden h-ful">
+                {#if scrollable}
+                    <ScrollArea class="h-full">
+                        <slot name="content" />
+                    </ScrollArea>
+                {:else}
                     <slot name="content" />
-                </ScrollArea>
+                {/if}
             </Card.Content>
         </Card.Root>
     </div>
