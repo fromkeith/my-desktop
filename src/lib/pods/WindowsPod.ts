@@ -30,17 +30,16 @@ class WindowProvider extends Provider<Map<string, IWindow>> {
     }
     public async close(windowId: string) {
         const cur = await this.promise;
-        let zIndex = -1;
         const curIndex = cur.get(windowId)?.zIndex ?? cur.size;
         cur.delete(windowId);
         for (const w of cur.values()) {
-            if (w.zIndex > zIndex) {
+            if (w.zIndex > curIndex) {
                 w.zIndex--;
             }
         }
         this.setState(Promise.resolve(new Map(cur)));
     }
-    public async open(window: Partial<IWindow>) {
+    public async open(window: Partial<IWindow>, from?: IWindow) {
         const cur = await this.promise;
         window.zIndex = cur.size;
         window.windowId = Math.floor(Math.random() * 1000).toString();
