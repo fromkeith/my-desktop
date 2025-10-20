@@ -2,8 +2,11 @@
     import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
     import * as Card from "$lib/components/ui/card/index.js";
     import WindowBar from "$lib/my-components/WindowBar.svelte";
+    import type { IWindow } from "$lib/models";
+    import { windowProvider } from "$lib/pods/WindowsPod";
 
     export let scrollable = true;
+    export let window: IWindow;
 
     let width = 500;
     let height = 500;
@@ -82,6 +85,12 @@
         dragging = false;
         resizebox.releasePointerCapture(e.pointerId);
     }
+
+    // start zindex at 100
+    $: zIndex = window.zIndex + 100;
+    function didClick() {
+        windowProvider().moveToTop(window.windowId, window.zIndex);
+    }
 </script>
 
 <div
@@ -90,6 +99,8 @@
     style:height={`${height}px`}
     style:left={`${x}px`}
     style:top={`${y}px`}
+    style:z-index={window.zIndex}
+    on:pointerdown={didClick}
 >
     <div
         class="relative w-full h-full cursor-nwse-resize p-1"

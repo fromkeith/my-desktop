@@ -33,6 +33,7 @@
     "vite": "^7.1.7"
   },
   "dependencies": {
-    "@friendofsvelte/tipex": "^0.0.9"
+    "@friendofsvelte/tipex": "^0.0.9",
+    "svelteprovider": "github:fromkeith/SvelteProvider#cf09593f76c34526a0888aabcb90e35e3e2a22df"
   }
 }
