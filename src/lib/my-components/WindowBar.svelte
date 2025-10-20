@@ -5,11 +5,15 @@
     import MinusIcon from "@lucide/svelte/icons/minus";
     import SquareIcon from "@lucide/svelte/icons/square";
     import XIcon from "@lucide/svelte/icons/x";
+    import { getContext } from "svelte";
+    import { windowProvider } from "$lib/pods/WindowsPod";
 
     import { createEventDispatcher } from "svelte";
 
     export let x = 0;
     export let y = 0;
+
+    let myWindow = getContext("window");
 
     const dispatch = createEventDispatcher();
 
@@ -20,7 +24,7 @@
         dispatch("maximize");
     }
     function close() {
-        dispatch("close");
+        windowProvider().close(myWindow.windowId);
     }
 
     let root: HTMLElement;
@@ -51,7 +55,6 @@
 
     function onPointerMove(e: PointerEvent) {
         if (!dragging) return;
-        console.log("move");
 
         // new desired top-left in viewport coords
         const desiredLeft = e.clientX - offsetX;
@@ -82,15 +85,16 @@
     on:pointerdown={onPointerDown}
 >
     <div class="flex m-2">
+        <slot name="window-top-left" />
         <div class="grow"></div>
         <ButtonGroup.Root>
-            <Button on:click={minimize} variant="outline">
+            <Button onclick={minimize} variant="outline">
                 <MinusIcon />
             </Button>
-            <Button on:click={maximize} variant="outline">
+            <Button onclick={maximize} variant="outline">
                 <SquareIcon />
             </Button>
-            <Button on:click={close} variant="outline">
+            <Button onclick={close} variant="outline">
                 <XIcon />
             </Button>
         </ButtonGroup.Root>

@@ -1,7 +1,7 @@
 <script lang="ts">
     import "./app.css";
 
-    import { windowProvider } from "$lib/pods/WindowsPod";
+    import { windowListProvider } from "$lib/pods/WindowsPod";
 
     import EmailListWindow from "$lib/my-components/EmailListWindow.svelte";
     import ComposeEmailWindow from "$lib/my-components/ComposeEmailWindow.svelte";
@@ -13,7 +13,7 @@
         EmailContentsWindow: EmailContentsWindow,
     };
 
-    $: windows = windowProvider();
+    $: windows = windowListProvider();
 </script>
 
 <main class="w-screen h-screen">

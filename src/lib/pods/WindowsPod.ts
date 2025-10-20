@@ -1,52 +1,75 @@
 import { WindowType, type IWindow } from "$lib/models";
 import { Provider } from "svelteprovider";
 
-class WindowProvider extends Provider<IWindow[]> {
+class WindowProvider extends Provider<Map<string, IWindow>> {
     constructor() {
-        super([]);
+        super(new Map());
     }
-    protected async build(): Promise<IWindow[]> {
-        return [
-            {
-                zIndex: 0,
-                windowId: "window-1234",
-                props: {},
-                type: WindowType.EmailList,
-            },
-            {
-                zIndex: 1,
-                windowId: "window-1235",
-                props: {},
-                type: WindowType.EmailList,
-            },
-            {
-                zIndex: 2,
-                windowId: "window-1236",
-                props: {},
-                type: WindowType.EmailContents,
-            },
-            {
-                zIndex: 3,
-                windowId: "window-1237",
-                props: {},
-                type: WindowType.ComposeEmail,
-            },
-        ];
+    protected async build(): Promise<Map<string, IWindow>> {
+        return new Map([]);
     }
-    public async moveToTop(windowId: string, curIndex: number) {
+    public async updateWindowDim(
+        windowId: string,
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+    ) {}
+    public async moveToTop(windowId: string) {
         const cur = await this.promise;
-        for (const w of cur) {
+        const curIndex = cur.get(windowId)?.zIndex ?? cur.size;
+        for (const w of cur.values()) {
             if (w.zIndex > curIndex) {
                 w.zIndex--;
             }
             if (w.windowId === windowId) {
-                console.log(w.zIndex);
-                w.zIndex = cur.length - 1;
-                console.log(w.zIndex);
+                w.zIndex = cur.size - 1;
             }
         }
-        this.setState(Promise.resolve([...cur]));
+        this.setState(Promise.resolve(new Map(cur)));
+    }
+    public async close(windowId: string) {
+        const cur = await this.promise;
+        let zIndex = -1;
+        const curIndex = cur.get(windowId)?.zIndex ?? cur.size;
+        cur.delete(windowId);
+        for (const w of cur.values()) {
+            if (w.zIndex > zIndex) {
+                w.zIndex--;
+            }
+        }
+        this.setState(Promise.resolve(new Map(cur)));
+    }
+    public async open(window: Partial<IWindow>) {
+        const cur = await this.promise;
+        window.zIndex = cur.size;
+        window.windowId = Math.floor(Math.random() * 1000).toString();
+        if (window.x === undefined) {
+            window.x = 10;
+        }
+        if (window.y === undefined) {
+            window.y = 10;
+        }
+        if (window.width === undefined) {
+            window.width = 500;
+        }
+        if (window.height === undefined) {
+            window.height = 500;
+        }
+        cur.set(window.windowId, window as IWindow);
+        this.setState(Promise.resolve(new Map(cur)));
+    }
+}
+
+class WindowListProvider extends Provider<IWindow[]> {
+    constructor() {
+        super([], windowProvider());
+    }
+
+    protected async build(windows: Map<string, IWindow>): Promise<IWindow[]> {
+        return Array.from(windows.values());
     }
 }
 
 export const windowProvider = WindowProvider.create();
+export const windowListProvider = WindowListProvider.create();

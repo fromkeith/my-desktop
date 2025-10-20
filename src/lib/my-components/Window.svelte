@@ -4,19 +4,35 @@
     import WindowBar from "$lib/my-components/WindowBar.svelte";
     import type { IWindow } from "$lib/models";
     import { windowProvider } from "$lib/pods/WindowsPod";
+    import { setContext } from "svelte";
+    import { createDebounce } from "$lib/utils/debounce";
 
     export let scrollable = true;
     export let window: IWindow;
 
-    let width = 500;
-    let height = 500;
-    let x = 0;
-    let y = 0;
+    setContext("window", window);
+
+    let width = window.width;
+    let height = window.height;
+    let x = window.x;
+    let y = window.y;
+
+    let moveDebounce = createDebounce();
 
     function move(e: CustomEvent) {
-        console.log("moved", e.detail);
         x = e.detail.x;
         y = e.detail.y;
+        moveDebounce(1000)
+            .then(() => {
+                windowProvider().updateWindowDim(
+                    window.windowId,
+                    x,
+                    y,
+                    width,
+                    height,
+                );
+            })
+            .catch(() => 0);
     }
 
     // resize state
@@ -35,7 +51,6 @@
         // where the pointer is relative to the box
         const rect = resizebox.getBoundingClientRect();
 
-        console.log({ rect, x: e.clientX, y: e.clientY });
         if (e.clientX < rect.left + 16) {
             adjustWidth = true;
             adjustXPos = true;
@@ -80,6 +95,18 @@
         height += deltaY;
         lastX = e.clientX;
         lastY = e.clientY;
+
+        moveDebounce(1000)
+            .then(() => {
+                windowProvider().updateWindowDim(
+                    window.windowId,
+                    x,
+                    y,
+                    width,
+                    height,
+                );
+            })
+            .catch(() => 0);
     }
     function onPointerUp(e: PointerEvent) {
         dragging = false;
@@ -112,7 +139,9 @@
     >
         <Card.Root class="overflow-hidden pt-0 h-full cursor-auto">
             <Card.Header class="px-1">
-                <WindowBar on:move={move} {x} {y} />
+                <WindowBar on:move={move} {x} {y}>
+                    <slot slot="window-top-left" name="window-top-left" />
+                </WindowBar>
             </Card.Header>
 
             <Card.Content class="overflow-hidden h-ful">

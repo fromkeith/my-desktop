@@ -9,4 +9,8 @@ export interface IWindow {
     windowId: string;
     props: Object;
     type: WindowType;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
 }
