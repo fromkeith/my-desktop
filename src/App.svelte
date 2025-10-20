@@ -3,6 +3,7 @@
     import Counter from "$lib/Counter.svelte";
     import Window from "$lib/my-components/Window.svelte";
     import EmailRow from "$lib/my-components/EmailRow.svelte";
+    import EmailContents from "$lib/my-components/EmailContents.svelte";
 </script>
 
 <main class="w-screen h-screen">
@@ -20,7 +21,9 @@
         </div>
     </Window>
     <Window>
-        <div slot="content"></div>
+        <div slot="content">
+            <EmailContents />
+        </div>
     </Window>
 
     <p></p>
