@@ -14,3 +14,11 @@ export interface IWindow {
     width: number;
     height: number;
 }
+
+export interface IAuthToken {
+    iss: string; // issuer
+    sub: string; // subject (aka account id)
+    exp: number; // expires in unix timestamp
+    nbf: number; // not valid before
+    iat: number; // expires at
+}

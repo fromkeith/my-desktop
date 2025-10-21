@@ -23,3 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 .zed
+.env
+*.googleusercontent.com.json
+*.sqlite3
+*.exe
