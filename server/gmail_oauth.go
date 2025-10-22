@@ -174,7 +174,35 @@ func createAccount(r *gin.Context, accountId string) error {
 	return err
 }
 
-func saveToken(r *gin.Context, accountId string, rec TokenRecord) error {
+func loadGmailTokenRecord(r *gin.Context, accountId string) (*TokenRecord, error) {
+	row := db.QueryRowContext(r, `
+		SELECT o.user_id, access_token, refresh_token, expiry, token_type, scope
+		FROM user_oauth_accounts u
+		INNER JOIN oauth_token_record o
+		WHERE u.account_id = ?
+		AND o.provider = 'google'
+		LIMIT 1
+		`, accountId)
+	rec := TokenRecord{
+		Provider: "google",
+	}
+	var expiry string
+	err := row.Scan(
+		&rec.UserId,
+		&rec.AccessToken,
+		&rec.RefreshToken,
+		&expiry,
+		&rec.TokenType,
+		&rec.Scope,
+	)
+	if err != nil {
+		return nil, err
+	}
+	rec.Expiry, _ = time.Parse(expiry, time.RFC3339)
+	return &rec, nil
+}
+
+func saveGmailTokenRecord(r context.Context, accountId string, rec TokenRecord) error {
 	tx, err := db.BeginTx(r, nil)
 	if err != nil {
 		log.Println(err)
@@ -313,7 +341,7 @@ func handleCallback(r *gin.Context) {
 		TokenType:    tok.TokenType,
 		Scope:        "", // optional: persist actual granted scope string
 	}
-	if err := saveToken(r, existingAccountId, rec); err != nil {
+	if err := saveGmailTokenRecord(r, existingAccountId, rec); err != nil {
 		log.Println(err)
 		r.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to save token"})
 		return

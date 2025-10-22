@@ -1,15 +1,15 @@
 <script lang="ts">
     import EmailRowActions from "$lib/my-components/EmailRowActions.svelte";
     import { windowProvider } from "$lib/pods/WindowsPod";
-    import { WindowType } from "$lib/models";
+    import { WindowType, type IEmail } from "$lib/models";
     import { getContext } from "svelte";
 
     export let isRead = false;
-    let sender = "Amazon.ca";
-    let subject = 'Shipped: "Repel Umbrella Windproof..." and 3 more items';
-    let preheader =
-        "package was shipped!  Out for delivery Delivered Arriving tomorrow";
-    let receivedAt = "Oct 17";
+    export let email: IEmail;
+    let sender = email.from.email;
+    let subject = email.subject;
+    let preheader = email.preheader;
+    let receivedAt = email.date;
 
     let myWindow = getContext("window");
 
@@ -27,7 +27,7 @@
 <div class="flex w-full" class:opacity-70={isRead}>
     <EmailRowActions />
     <div class="flex flex-1 pv-1 min-w-0 items-center" on:click={openEmail}>
-        <div class="w-32 overflow-hidden" class:font-bold={!isRead}>
+        <div class="w-32 overflow-hidden truncate" class:font-bold={!isRead}>
             {sender}
         </div>
         <div class="grow overflow-hidden min-w-0">

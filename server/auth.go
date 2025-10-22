@@ -56,7 +56,7 @@ func AuthTokenExtract() gin.HandlerFunc {
 			if err != nil {
 				panic(err)
 			}
-			c.Set("claims", claims)
+			c.Set("claims", *claims)
 		}
 		c.Next()
 	}

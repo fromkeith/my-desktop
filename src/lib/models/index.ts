@@ -22,3 +22,17 @@ export interface IAuthToken {
     nbf: number; // not valid before
     iat: number; // expires at
 }
+
+interface ISenderInfo {
+    email: string;
+    name: string;
+}
+export interface IEmail {
+    id: string;
+    from: ISenderInfo;
+    to: ISenderInfo;
+    cc: ISenderInfo[];
+    subject: string;
+    date: string;
+    preheader: string;
+}

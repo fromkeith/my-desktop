@@ -22,6 +22,7 @@ func main() {
 
 	r.GET("/api/gmail/start", handleAuthStart)
 	r.GET("/api/gmail/callback", handleCallback)
+	r.GET("/api/gmail/inbox", ListInbox)
 
 	// Start server on port 8080 (default)
 	// Server will listen on 0.0.0.0:8080 (localhost:8080 on Windows)

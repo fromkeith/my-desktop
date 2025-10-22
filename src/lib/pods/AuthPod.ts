@@ -46,5 +46,20 @@ class AuthTokenProvider extends Provider<IAuthToken | null> {
     }
 }
 
+class AuthHeaderProvider extends Provider<Headers> {
+    constructor() {
+        super(null, authProvider());
+    }
+    protected async build(authToken: string | null): Promise<Headers> {
+        const headers = new Headers();
+        if (!authToken) {
+            return headers;
+        }
+        headers.set("Authorization", `Bearer ${authToken}`);
+        return headers;
+    }
+}
+
 export const authProvider = AuthProvider.create();
 export const authTokenProvider = AuthTokenProvider.create();
+export const authHeaderProvider = AuthHeaderProvider.create();
