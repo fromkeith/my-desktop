@@ -44,6 +44,7 @@
         const rect = root.getBoundingClientRect();
         offsetX = e.clientX - rect.left;
         offsetY = e.clientY - rect.top;
+        console.log(root)
 
         startX = e.clientX;
         startY = e.clientY;
@@ -66,7 +67,6 @@
         const left = Math.min(Math.max(desiredLeft, c.left), c.right);
         const top = Math.min(Math.max(desiredTop, c.top), c.bottom);
 
-        // convert back to container-local coords
         let x = left - c.left;
         let y = top - c.top;
         dispatch("move", { x, y });

@@ -46,6 +46,9 @@ func main() {
 	r.GET("/api/gmail/start", gmail_oauth.HandleAuthStart)
 	r.GET("/api/gmail/callback", gmail_oauth.HandleCallback)
 	r.GET("/api/gmail/inbox", ListInbox)
+	// TODO: maybe this is just another list query? they return basically the same thing
+	r.GET("/api/gmail/thread/:threadId", ListThread)
+	r.GET("/api/gmail/message/:messageId/contents", GetMessageContents)
 
 	// Start server on port 8080 (default)
 	// Server will listen on 0.0.0.0:8080 (localhost:8080 on Windows)

@@ -141,6 +141,41 @@ errorLoop:
 	return nil
 }
 
+func (g *gmailClient) FetchOneMessage(ctx context.Context, messageId string) error {
+	idCh := make(chan string, 1)
+	errCh := make(chan error, 1)
+	maxInternalDateChan := make(chan int64, 1)
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go g.fetchContentsWorker(ctx, &wg, idCh, errCh, maxInternalDateChan)
+	idCh <- messageId
+	close(idCh)
+
+	// wait until we are done, helper
+	doneWait := make(chan bool)
+	go func() {
+		wg.Wait()
+		log.Println("done watiting")
+		doneWait <- true
+	}()
+	// waits until done and gets all errors out
+	var lastError error
+errorLoop:
+	for {
+		select {
+		case err := <-errCh:
+			lastError = err
+		case <-maxInternalDateChan:
+			// do nothing
+		case <-doneWait:
+			break errorLoop
+		}
+	}
+	return lastError
+
+}
+
 func (g *gmailClient) fetchContentsWorker(ctx context.Context, wg *sync.WaitGroup, idCh chan string, errCh chan error, maxInternalDateChan chan int64) {
 	defer func() {
 		e := recover()
@@ -350,6 +385,10 @@ func extractBodies(p *gmail.MessagePart) (text string, html string, hasAttachmen
 	if p == nil {
 		return
 	}
+	log.Println("::: MimeType", p.MimeType)
+	for h := range p.Headers {
+		log.Println("headers ", h, p.Headers[h].Name, p.Headers[h].Value)
+	}
 
 	switch {
 	case strings.HasPrefix(p.MimeType, "multipart/"):
@@ -423,7 +462,7 @@ func decodeB64URL(s string) string {
 	if s == "" {
 		return ""
 	}
-	b, err := base64.URLEncoding.WithPadding(base64.NoPadding).DecodeString(s)
+	b, err := base64.URLEncoding.DecodeString(s)
 	if err != nil {
 		// Some payloads contain standard base64; fall back
 		b2, err2 := base64.StdEncoding.DecodeString(s)
@@ -431,6 +470,9 @@ func decodeB64URL(s string) string {
 			return string(b2)
 		}
 		log.Printf("decode body failed: %v and %v", err, err2)
+		log.Println("----")
+		log.Println(s[0:256])
+		log.Println("----")
 		return ""
 	}
 	return string(b)

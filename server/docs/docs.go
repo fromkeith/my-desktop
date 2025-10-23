@@ -38,6 +38,47 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/gmail/message/:messageId/contents": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "Get the contents of a message",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/GmailEntryBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/gmail/thread/{threadId}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "List all messages in a thread",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/GmailEntry"
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -112,6 +153,37 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "threadId": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "string"
+                }
+            }
+        },
+        "GmailEntryBody": {
+            "type": "object",
+            "required": [
+                "hasAttachments",
+                "messageId",
+                "userId"
+            ],
+            "properties": {
+                "attachmentIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "hasAttachments": {
+                    "type": "integer"
+                },
+                "html": {
+                    "type": "string"
+                },
+                "messageId": {
+                    "type": "string"
+                },
+                "plainText": {
                     "type": "string"
                 },
                 "userId": {

@@ -8,26 +8,42 @@
     import ReplyIcon from "@lucide/svelte/icons/reply";
     import ReplyAllIcon from "@lucide/svelte/icons/reply-all";
     import ForwardIcon from "@lucide/svelte/icons/forward";
+    import type {IGmailEntry} from '$lib/models';
+    import { dateFormat } from "$lib/pods/EmailListPod";
+    import { emailThreadProvider } from "$lib/pods/EmailThreadPod";
+    import EmailRow from "./EmailRow.svelte";
+    import EmailThreadRow from "./EmailThreadRow.svelte";
 
-    let sender = "Amazon.ca";
-    let senderEmail = "no-reply@amazon.ca";
-    let subject = 'Shipped: "Repel Umbrella Windproof..." and 3 more items';
-    let preheader =
-        "package was shipped!  Out for delivery Delivered Arriving tomorrow";
-    let receivedAt = "Oct 17";
-    let to = "Keith Tester";
-    let toEmail = "keith@tester.com";
+    export let email: IGmailEntry;
+
+    $: thread = emailThreadProvider(email.threadId);
+
+    let expanded: Set<string> = new Set();
+    expanded.add(email.messageId);
+
+    let receivedAt = dateFormat.format(new Date(email.internalDate));
+
+    function toggle(e: CustomEvent<string>) {
+        if (expanded.has(e.detail)) {
+            expanded.delete(e.detail);
+        } else {
+            expanded.add(e.detail);
+        }
+        expanded = expanded;
+    }
 </script>
 
-<h1 class="text-lg">{subject}</h1>
+<h1 class="text-lg">{email.subject}</h1>
 <div class="mb-2">
     <div class="text-md">
         <span class="font-bold">From</span>
-        <span>{sender} &lt;{senderEmail}&gt;</span>
+        <span>{email.sender.name} &lt;{email.sender.email}&gt;</span>
     </div>
     <div class="text-sm">
         <span class="font-bold">To</span>
-        <span>{to} &lt;{toEmail}&gt;</span>
+        {#each email.receiver as rec}
+            <span>{rec.name} &lt;{rec.email}&gt;</span>
+        {/each}
     </div>
     <div class="mt-1 flex flex-wrap">
         <ButtonGroup.Root>
@@ -57,6 +73,6 @@
     </div>
 </div>
 <Separator />
-<div>
-    <iframe />
-</div>
+{#each $thread as e(e.messageId)}
+    <EmailThreadRow email={e} originalSubject={email.subject} expanded={expanded.has(e.messageId)} on:toggle={toggle} />
+{/each}

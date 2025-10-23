@@ -56,6 +56,27 @@ definitions:
     - threadId
     - userId
     type: object
+  GmailEntryBody:
+    properties:
+      attachmentIds:
+        items:
+          type: string
+        type: array
+      hasAttachments:
+        type: integer
+      html:
+        type: string
+      messageId:
+        type: string
+      plainText:
+        type: string
+      userId:
+        type: string
+    required:
+    - hasAttachments
+    - messageId
+    - userId
+    type: object
   PersonInfo:
     properties:
       email:
@@ -87,6 +108,32 @@ paths:
               $ref: '#/definitions/GmailEntry'
             type: array
       summary: List the inbox
+      tags:
+      - email
+  /gmail/message/:messageId/contents:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GmailEntryBody'
+      summary: Get the contents of a message
+      tags:
+      - email
+  /gmail/thread/{threadId}:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/GmailEntry'
+            type: array
+      summary: List all messages in a thread
       tags:
       - email
 swagger: "2.0"

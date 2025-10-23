@@ -1,13 +1,14 @@
 <script lang="ts">
     import Window from "$lib/my-components/Window.svelte";
-    import EmailContents from "$lib/my-components/EmailContents.svelte";
-    import type { IWindow } from "$lib/models";
+    import EmailThread from "$lib/my-components/EmailThread.svelte";
+    import type { IWindow, IGmailEntry } from "$lib/models";
     import MailOpenIcon from "@lucide/svelte/icons/mail-open";
 
     export let window: IWindow;
+    export let email: IGmailEntry;
 </script>
 
 <Window {window}>
     <MailOpenIcon slot="window-top-left" />
-    <EmailContents slot="content" />
+    <EmailThread slot="content" {email} />
 </Window>
