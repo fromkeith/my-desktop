@@ -1,0 +1,92 @@
+basePath: /api
+definitions:
+  GmailEntry:
+    properties:
+      additionalReceivers:
+        additionalProperties:
+          items:
+            $ref: '#/definitions/PersonInfo'
+          type: array
+        type: object
+      headers:
+        additionalProperties:
+          type: string
+        type: object
+      historyId:
+        type: integer
+      internalDate:
+        type: integer
+      labels:
+        items:
+          type: string
+        type: array
+      messageId:
+        type: string
+      receivedAt:
+        type: string
+      receiver:
+        items:
+          $ref: '#/definitions/PersonInfo'
+        type: array
+      replyTo:
+        type: string
+      sender:
+        $ref: '#/definitions/PersonInfo'
+      snippet:
+        type: string
+      subject:
+        type: string
+      threadId:
+        type: string
+      userId:
+        type: string
+    required:
+    - additionalReceivers
+    - headers
+    - historyId
+    - internalDate
+    - labels
+    - messageId
+    - receivedAt
+    - receiver
+    - replyTo
+    - sender
+    - snippet
+    - subject
+    - threadId
+    - userId
+    type: object
+  PersonInfo:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+    required:
+    - email
+    - name
+    type: object
+host: localhost:5173
+info:
+  contact: {}
+  description: API Calls
+  termsOfService: http://fromkeith.com
+  title: Desktop Eamil
+  version: "1.0"
+paths:
+  /gmail/inbox:
+    get:
+      description: List the user's email inbox
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/GmailEntry'
+            type: array
+      summary: List the inbox
+      tags:
+      - email
+swagger: "2.0"

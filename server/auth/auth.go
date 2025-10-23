@@ -1,21 +1,20 @@
-package main
+package auth
 
 import (
+	"context"
 	"errors"
 	"os"
-	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type desktopClaims struct {
+type DesktopClaims struct {
 	jwt.RegisteredClaims
 }
 
 // be sure to have set the Subject
-func CreateToken(claims desktopClaims) (string, error) {
+func CreateToken(claims DesktopClaims) (string, error) {
 	claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Hour * 42))
 	claims.IssuedAt = jwt.NewNumericDate(time.Now())
 	claims.NotBefore = jwt.NewNumericDate(time.Now())
@@ -35,29 +34,24 @@ func keyFunc(tok *jwt.Token) (any, error) {
 	return []byte(os.Getenv("JWT_KEY")), nil
 }
 
-func validateToken(tokenStr string) (*desktopClaims, error) {
-	var token, err = jwt.ParseWithClaims(tokenStr, &desktopClaims{}, keyFunc)
+func ValidateToken(tokenStr string) (*DesktopClaims, error) {
+	var token, err = jwt.ParseWithClaims(tokenStr, &DesktopClaims{}, keyFunc)
 	if err != nil {
 		return nil, err
 	}
 
 	// Type assert the claims
-	if claims, ok := token.Claims.(*desktopClaims); ok && token.Valid {
+	if claims, ok := token.Claims.(*DesktopClaims); ok && token.Valid {
 		return claims, nil
 	}
 	return nil, errors.New("Invalid claims")
 }
 
-func AuthTokenExtract() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		auth := c.GetHeader("Authorization")
-		if auth != "" {
-			claims, err := validateToken(strings.TrimPrefix(auth, "Bearer "))
-			if err != nil {
-				panic(err)
-			}
-			c.Set("claims", *claims)
-		}
-		c.Next()
+func ClaimsOrNil(ctx context.Context) *DesktopClaims {
+	claimsI := ctx.Value("claims")
+	if claimsI != nil {
+		claims := claimsI.(DesktopClaims)
+		return &claims
 	}
+	return nil
 }

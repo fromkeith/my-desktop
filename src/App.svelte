@@ -33,6 +33,9 @@
             <OAuth />
         </div>
     {/if}
+    <div class="m-64">
+        <OAuth />
+    </div>
 </main>
 
 <style>

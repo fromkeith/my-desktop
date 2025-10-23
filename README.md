@@ -31,3 +31,15 @@ Use build.bat... it sets the needed cgo flags. Make sure you have gcc:
 ```
 Some people have good experiences with MSYS2: https://www.msys2.org/. After installing MSYS2, run pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-pkg-config to install MinGW and pkg-config. (This is the most recommended way by now.)
 ```
+
+## Generating Swagger
+
+```
+go install github.com/swaggo/swag/cmd/swag@latest
+swag init
+```
+
+client side
+```
+npm run models
+```

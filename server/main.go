@@ -1,27 +1,50 @@
 package main
 
 import (
+	_ "fromkeith/my-desktop-server/globals"
+	"fromkeith/my-desktop-server/gmail/gmail_oauth"
+	"fromkeith/my-desktop-server/middleware"
+	"unicode"
+	"unicode/utf8"
+
+	// for swagger
+	_ "fromkeith/my-desktop-server/docs"
+
 	"github.com/gin-gonic/gin"
 
-	_ "github.com/joho/godotenv/autoload"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/json-iterator/go/extra"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-func main() {
+// @title           Desktop Eamil
+// @version         1.0
+// @description     API Calls
+// @termsOfService  http://fromkeith.com
 
-	open()
-	setupGoogle()
+// @host      localhost:5173
+// @BasePath  /api
+func main() {
+	// LowerCamelCase: just lowercase the first rune.
+	extra.SetNamingStrategy(func(name string) string {
+		if name == "" {
+			return name
+		}
+		r, size := utf8.DecodeRuneInString(name)
+		return string(unicode.ToLower(r)) + name[size:]
+	})
+
+	gmail_oauth.SetupGoogle()
 	// Create a Gin router with default middleware (logger and recovery)
 	r := gin.Default()
 
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
-	r.Use(AuthTokenExtract())
+	r.Use(middleware.AuthTokenExtract())
 
-	r.GET("/api/gmail/start", handleAuthStart)
-	r.GET("/api/gmail/callback", handleCallback)
+	r.GET("/api/gmail/start", gmail_oauth.HandleAuthStart)
+	r.GET("/api/gmail/callback", gmail_oauth.HandleCallback)
 	r.GET("/api/gmail/inbox", ListInbox)
 
 	// Start server on port 8080 (default)

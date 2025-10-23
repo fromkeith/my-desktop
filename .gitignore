@@ -27,3 +27,5 @@ dist-ssr
 *.googleusercontent.com.json
 *.sqlite3
 *.exe
+# auto generated via: npm run models
+src/lib/models/server.ts

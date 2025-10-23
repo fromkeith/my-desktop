@@ -1,38 +1,26 @@
+export * from "./server";
+
 export enum WindowType {
-    EmailList = "EmailListWindow",
-    EmailContents = "EmailContentsWindow",
-    ComposeEmail = "ComposeEmailWindow",
+  EmailList = "EmailListWindow",
+  EmailContents = "EmailContentsWindow",
+  ComposeEmail = "ComposeEmailWindow",
 }
 
 export interface IWindow {
-    zIndex: number;
-    windowId: string;
-    props: Object;
-    type: WindowType;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
+  zIndex: number;
+  windowId: string;
+  props: Object;
+  type: WindowType;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 export interface IAuthToken {
-    iss: string; // issuer
-    sub: string; // subject (aka account id)
-    exp: number; // expires in unix timestamp
-    nbf: number; // not valid before
-    iat: number; // expires at
-}
-
-interface ISenderInfo {
-    email: string;
-    name: string;
-}
-export interface IEmail {
-    id: string;
-    from: ISenderInfo;
-    to: ISenderInfo;
-    cc: ISenderInfo[];
-    subject: string;
-    date: string;
-    preheader: string;
+  iss: string; // issuer
+  sub: string; // subject (aka account id)
+  exp: number; // expires in unix timestamp
+  nbf: number; // not valid before
+  iat: number; // expires at
 }

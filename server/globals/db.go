@@ -1,4 +1,4 @@
-package main
+package globals
 
 import (
 	"database/sql"
@@ -11,10 +11,14 @@ var (
 	db *sql.DB
 )
 
-func open() {
+func Open() {
 	var err error
 	db, err = sql.Open("sqlite3", "./desktop.sqlite3")
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func Db() *sql.DB {
+	return db
 }

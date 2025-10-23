@@ -14,7 +14,7 @@
 <Window {window}>
     <MailsIcon slot="window-top-left" />
     <div slot="content">
-        {#each $emails as email (email.id)}
+        {#each $emails as email (email.messageId)}
             <EmailRow isRead={false} {email} />
         {/each}
     </div>
