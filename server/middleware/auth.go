@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"fromkeith/my-desktop-server/auth"
+	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -13,7 +14,10 @@ func AuthTokenExtract() gin.HandlerFunc {
 		if authHeader != "" {
 			claims, err := auth.ValidateToken(strings.TrimPrefix(authHeader, "Bearer "))
 			if err != nil {
-				panic(err)
+				// TODO: don't abort, don't just error
+				// handle expired credentials
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err})
+				return
 			}
 			c.Set("claims", *claims)
 			c.Set("accountId", claims.Subject)

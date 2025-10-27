@@ -60,6 +60,23 @@ class AuthHeaderProvider extends Provider<Headers> {
     }
 }
 
+class IsAuthValidProvider extends Provider<boolean> {
+    constructor() {
+        super(false, authTokenProvider());
+    }
+    protected async build(authToken: IAuthToken | null): Promise<boolean> {
+        if (!authToken) {
+            return false;
+        }
+        if (!authToken) {
+            return false;
+        }
+        const now = Date.now();
+        return now < authToken.exp * 1000;
+    }
+}
+
 export const authProvider = AuthProvider.create();
 export const authTokenProvider = AuthTokenProvider.create();
 export const authHeaderProvider = AuthHeaderProvider.create();
+export const isAuthValidProvider = IsAuthValidProvider.create();
