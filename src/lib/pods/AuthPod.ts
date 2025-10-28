@@ -1,11 +1,11 @@
 import { type IAuthToken } from "$lib/models";
 import { Provider } from "svelteprovider";
 
-class AuthProvider extends Provider<string | null> {
+class AuthProvider extends Provider<string | null | undefined> {
     constructor() {
-        super(null);
+        super(undefined);
     }
-    protected async build(): Promise<string | null> {
+    protected async build(): Promise<string | null | undefined> {
         let authTokenStr: string | null = null;
         if (
             window.location.search &&
@@ -31,16 +31,22 @@ class AuthProvider extends Provider<string | null> {
         return authTokenStr;
     }
 }
-
-class AuthTokenProvider extends Provider<IAuthToken | null> {
+//
+class AuthTokenProvider extends Provider<IAuthToken | undefined> {
     constructor() {
-        super(null, authProvider());
+        super(undefined, authProvider());
     }
     protected async build(
         authToken: string | null,
-    ): Promise<IAuthToken | null> {
+    ): Promise<IAuthToken | undefined> {
         if (!authToken) {
-            return null;
+            return {
+                iss: "",
+                sub: "",
+                exp: 0,
+                nbf: 0,
+                iat: 0,
+            };
         }
         return JSON.parse(atob(authToken.split(".")[1]));
     }
@@ -60,9 +66,9 @@ class AuthHeaderProvider extends Provider<Headers> {
     }
 }
 
-class IsAuthValidProvider extends Provider<boolean> {
+class IsAuthValidProvider extends Provider<boolean | undefined> {
     constructor() {
-        super(false, authTokenProvider());
+        super(undefined, authTokenProvider());
     }
     protected async build(authToken: IAuthToken | null): Promise<boolean> {
         if (!authToken) {

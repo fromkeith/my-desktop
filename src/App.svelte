@@ -25,7 +25,7 @@
 <main class="w-screen h-screen">
     {#if !$isAuthValid}
         {#if $authLoading}
-            <Progress />
+            <Progress value={null} />
         {:else}
             <LoginWindow />
         {/if}

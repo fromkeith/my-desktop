@@ -34,7 +34,7 @@ func ListInbox(r *gin.Context) {
 			json(g.sender),
 			json(g.receiver),
 			g.received_at,
-			g.reply_to,
+			json(g.reply_to),
 			json(g.additional_receivers)
 		FROM user_oauth_accounts u
 		INNER JOIN gmail_entries g ON g.user_id = u.user_id
@@ -74,7 +74,7 @@ func ListInbox(r *gin.Context) {
 
 func unmarshalEmailEntry(rows *sql.Rows) *gmail_client.GmailEntry {
 	var entry gmail_client.GmailEntry
-	var labelsJson, headersJson, senderJson, receiverJson, additionalReceiversJson []byte
+	var labelsJson, headersJson, senderJson, receiverJson, replyToJson, additionalReceiversJson []byte
 	err := rows.Scan(
 		&entry.UserId,
 		&entry.MessageId,
@@ -88,7 +88,7 @@ func unmarshalEmailEntry(rows *sql.Rows) *gmail_client.GmailEntry {
 		&senderJson,
 		&receiverJson,
 		&entry.ReceivedAt,
-		&entry.ReplyTo,
+		&replyToJson,
 		&additionalReceiversJson,
 	)
 	if err != nil {
@@ -99,6 +99,7 @@ func unmarshalEmailEntry(rows *sql.Rows) *gmail_client.GmailEntry {
 	json.Unmarshal((headersJson), &entry.Headers)
 	json.Unmarshal((senderJson), &entry.Sender)
 	json.Unmarshal((receiverJson), &entry.Receiver)
+	json.Unmarshal((replyToJson), &entry.ReplyTo)
 	json.Unmarshal((additionalReceiversJson), &entry.AdditionalReceivers)
 	return &entry
 }
@@ -112,7 +113,7 @@ func bootstrap(r *gin.Context) {
 		return
 	}
 	go client.Boostrap(context.Background())
-	r.JSON(http.StatusOK, make([]string, 0))
+	// r.JSON(http.StatusOK, make([]string, 0))
 }
 
 // ListThread godoc
@@ -138,7 +139,7 @@ func ListThread(r *gin.Context) {
 			json(g.sender),
 			json(g.receiver),
 			g.received_at,
-			g.reply_to,
+			json(g.reply_to),
 			json(g.additional_receivers)
 		FROM user_oauth_accounts u
 		INNER JOIN gmail_entries g ON g.user_id = u.user_id
@@ -167,6 +168,66 @@ func ListThread(r *gin.Context) {
 		res = append(res, *entry)
 	}
 	r.JSON(http.StatusOK, res)
+
+}
+
+// GetMessage godoc
+// @Summary      Get the basic information about a message
+// @Tags         email
+// @Produce      json
+// @Success      200  {object}  gmail_client.GmailEntry
+// @Router       /gmail/message/:messageId [get]
+func GetMessage(r *gin.Context) {
+	messageId := r.Param("messageId")
+
+	rows, err := globals.Db().QueryContext(r, `
+		SELECT
+			g.user_id,
+			g.message_id,
+			g.thread_id,
+			json(g.labels),
+			g.subject,
+			g.snippet,
+			g.history_id,
+			g.internal_date,
+			json(g.headers),
+			json(g.sender),
+			json(g.receiver),
+			g.received_at,
+			json(g.reply_to),
+			json(g.additional_receivers)
+		FROM user_oauth_accounts u
+		INNER JOIN gmail_entries g ON g.user_id = u.user_id
+		WHERE u.account_id = ? AND g.message_id = ?
+		LIMIT 1
+		`,
+		r.GetString("accountId"),
+		messageId,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			r.JSON(http.StatusOK, make([]gmail_client.GmailEntry, 0))
+			return
+		}
+		log.Println(err)
+		r.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Failed to get gmail client"})
+		return
+	}
+	defer rows.Close()
+	// lazily using this so unmarshalEmailEntry can be used
+	res := make([]gmail_client.GmailEntry, 0, 1)
+	for rows.Next() {
+		entry := unmarshalEmailEntry(rows)
+		if entry == nil {
+			continue
+		}
+		res = append(res, *entry)
+	}
+	if len(res) == 0 {
+		r.JSON(http.StatusNotFound, gin.H{"error": "Message not found"})
+		return
+	}
+	r.JSON(http.StatusOK, res[0])
 
 }
 

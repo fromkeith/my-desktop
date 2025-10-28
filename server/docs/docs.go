@@ -39,6 +39,25 @@ const docTemplate = `{
                 }
             }
         },
+        "/gmail/message/:messageId": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "Get the basic information about a message",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/GmailEntry"
+                        }
+                    }
+                }
+            }
+        },
         "/gmail/message/:messageId/contents": {
             "get": {
                 "produces": [
@@ -93,7 +112,6 @@ const docTemplate = `{
                 "messageId",
                 "receivedAt",
                 "receiver",
-                "replyTo",
                 "sender",
                 "snippet",
                 "subject",
@@ -141,7 +159,7 @@ const docTemplate = `{
                     }
                 },
                 "replyTo": {
-                    "type": "string"
+                    "$ref": "#/definitions/PersonInfo"
                 },
                 "sender": {
                     "$ref": "#/definitions/PersonInfo"

@@ -202,6 +202,12 @@ func (g *gmailClient) fetchContentsWorker(ctx context.Context, wg *sync.WaitGrou
 			continue
 		}
 		headers := headerMap(msg.Payload.Headers)
+		var replyTo *PersonInfo
+		r := personFrom(headers, "reply-to")
+		if r.Email != "" {
+			replyTo = &r
+		}
+
 		entry := GmailEntry{
 			UserId:       g.userId,
 			MessageId:    msg.Id,
@@ -215,7 +221,7 @@ func (g *gmailClient) fetchContentsWorker(ctx context.Context, wg *sync.WaitGrou
 			Sender:       personFrom(headers, "from"),
 			Receiver:     peopleFrom(headers, "to"),
 			ReceivedAt:   headers["date"],
-			ReplyTo:      personFrom(headers, "reply-to").Email,
+			ReplyTo:      replyTo,
 			AdditionalReceivers: map[string][]PersonInfo{
 				"bcc": peopleFrom(headers, "bcc"),
 				"cc":  peopleFrom(headers, "cc"),
@@ -227,6 +233,7 @@ func (g *gmailClient) fetchContentsWorker(ctx context.Context, wg *sync.WaitGrou
 		headersJson, _ := json.MarshalToString(entry.Headers)
 		senderJson, _ := json.MarshalToString(entry.Sender)
 		receiverJson, _ := json.MarshalToString(entry.Receiver)
+		replyToJson, _ := json.MarshalToString(entry.ReplyTo)
 		additionalReceiversJson, _ := json.MarshalToString(entry.AdditionalReceivers)
 		_, err = globals.Db().ExecContext(ctx, `
 		INSERT OR REPLACE INTO gmail_entries (
@@ -257,7 +264,7 @@ func (g *gmailClient) fetchContentsWorker(ctx context.Context, wg *sync.WaitGrou
 			jsonb(?),
 			jsonb(?),
 			?,
-			?,
+			jsonb(?),
 			jsonb(?)
 		)
 			`,
@@ -273,7 +280,7 @@ func (g *gmailClient) fetchContentsWorker(ctx context.Context, wg *sync.WaitGrou
 			senderJson,
 			receiverJson,
 			entry.ReceivedAt,
-			entry.ReplyTo,
+			replyToJson,
 			additionalReceiversJson,
 		)
 		if err != nil {

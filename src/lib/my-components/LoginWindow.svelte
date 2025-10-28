@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { IWindow } from "$lib/models";
+    import { type IWindow, WindowType } from "$lib/models";
     import Window from "$lib/my-components/Window.svelte";
 
     import OAuth from "./OAuth.svelte";
@@ -10,6 +10,9 @@
         height: 300,
         x: Math.max(document.body.clientWidth / 2 - 400 / 2, 0),
         y: Math.max(document.body.clientHeight / 2 - 400 / 2, 0),
+        props: {},
+        windowId: "login-window",
+        type: WindowType.LoginEmail,
     };
 </script>
 

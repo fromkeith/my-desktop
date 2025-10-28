@@ -18,7 +18,7 @@ type GmailEntry struct {
 	Sender              PersonInfo              `validate:"required"`
 	Receiver            []PersonInfo            `validate:"required"`
 	ReceivedAt          string                  `validate:"required"`
-	ReplyTo             string                  `validate:"required"`
+	ReplyTo             *PersonInfo             `json:",omitempty"`
 	AdditionalReceivers map[string][]PersonInfo `validate:"required"`
 } // @name GmailEntry
 

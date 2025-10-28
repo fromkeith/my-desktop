@@ -44,17 +44,18 @@ class WindowProvider extends Provider<Map<string, IWindow>> {
         window.zIndex = cur.size;
         window.windowId = Math.floor(Math.random() * 1000).toString();
         if (window.x === undefined) {
-            window.x = 10;
+            window.x = (from?.x ?? 0) + 50;
         }
         if (window.y === undefined) {
-            window.y = 10;
+            window.y = (from?.y ?? 0) + 50;
         }
         if (window.width === undefined) {
-            window.width = 500;
+            window.width = 600;
         }
         if (window.height === undefined) {
-            window.height = 500;
+            window.height = 800;
         }
+        window.from = from?.windowId ?? undefined;
         cur.set(window.windowId, window as IWindow);
         this.setState(Promise.resolve(new Map(cur)));
     }

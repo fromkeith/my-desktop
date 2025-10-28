@@ -43,6 +43,7 @@
 <div
     class="absolute left-0 top-0 h-12 w-full bg-white flex justify-between"
     bind:this={toolbar}
+    style="z-index: 9999999999;"
 >
     <div></div>
     <div
