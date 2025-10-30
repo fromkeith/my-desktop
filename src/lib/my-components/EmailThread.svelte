@@ -6,6 +6,7 @@
     import DeleteIcon from "@lucide/svelte/icons/delete";
     import MailIcon from "@lucide/svelte/icons/mail";
     import ReplyIcon from "@lucide/svelte/icons/reply";
+    import ChevronsUpDownIcon from "@lucide/svelte/icons/chevrons-up-down";
     import ReplyAllIcon from "@lucide/svelte/icons/reply-all";
     import ForwardIcon from "@lucide/svelte/icons/forward";
     import {
@@ -18,6 +19,8 @@
     import EmailThreadRow from "./EmailThreadRow.svelte";
     import { getContext } from "svelte";
     import { windowProvider } from "$lib/pods/WindowsPod";
+    import * as Collapsible from "$lib/components/ui/collapsible/index.js";
+    import ShortenedEmailList from "./ShortenedEmailList.svelte";
 
     export let email: IGmailEntry;
 
@@ -80,19 +83,16 @@
 <h1 class="text-lg">{email.subject}</h1>
 <div class="mb-2">
     <div class="text-md">
-        <span class="font-bold">From</span>
+        <span class="font-bold mr-1">From</span>
         <span>{email.sender.name} &lt;{email.sender.email}&gt;</span>
     </div>
     <div class="text-sm">
-        <span class="font-bold">To</span>
-        {#each email.receiver as rec, idx}
-            <span class="ml-1"
-                >{rec.name} &lt;{rec.email}&gt;
-                {#if idx !== email.receiver.length - 1}
-                    ,
-                {/if}
-            </span>
-        {/each}
+        <div class="w-full flex">
+            <span class="font-bold mr-1">To</span>
+            <div class="grow">
+                <ShortenedEmailList contacts={email.receiver} doClose={false} />
+            </div>
+        </div>
     </div>
     <div class="mt-1 flex flex-wrap">
         <ButtonGroup.Root>

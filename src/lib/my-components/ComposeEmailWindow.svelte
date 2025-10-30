@@ -66,7 +66,10 @@
     <MailPlusIcon slot="window-top-left" />
     <div slot="content" class="h-full">
         {#if $previousContents && data && !$loadingContents}
-            <ComposeEmailContents {data} previousContents={$previousContents} />
+            <ComposeEmailContents
+                srcEmail={data}
+                previousContents={$previousContents}
+            />
         {:else}
             <Progress />
         {/if}
