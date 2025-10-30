@@ -26,7 +26,7 @@
     }
 </script>
 
-{#if contacts.length > 1 && !expanded}
+{#if !expanded && contacts.length > 0}
     <button
         class="flex w-full justify-between cursor-pointer"
         onclick={toggleExpanded}
@@ -58,12 +58,10 @@
                 />
             {/each}
         </div>
-        {#if contacts.length > 1}
-            <button onclick={toggleExpanded} class="cursor-pointer">
-                <div class="text-sm w-16 flex justify-end">
-                    <ChevronUpIcon class="size-4 ml-1" />
-                </div>
-            </button>
-        {/if}
+        <button onclick={toggleExpanded} class="cursor-pointer">
+            <div class="text-sm w-16 flex justify-end">
+                <ChevronUpIcon class="size-4 ml-1" />
+            </div>
+        </button>
     </div>
 {/if}

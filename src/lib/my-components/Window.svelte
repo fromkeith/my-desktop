@@ -144,7 +144,7 @@
                 </WindowBar>
             </Card.Header>
 
-            <Card.Content class="overflow-hidden h-ful">
+            <Card.Content class="overflow-hidden h-full">
                 {#if scrollable}
                     <ScrollArea class="h-full">
                         <slot name="content" />

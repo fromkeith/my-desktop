@@ -22,13 +22,14 @@
         previousContents,
         srcEmail,
     }: {
-        previousContents: IGmailEntryBody;
+        previousContents: IGmailEntryBody | undefined;
         srcEmail: IComposeEmailMeta;
     } = $props();
 
     onMount(async () => {});
 
-    let { form, data, errors } = createForm({
+    // there are more store that could help with submitting
+    let { form, data, errors, validate } = createForm({
         initialValues: {
             to: srcEmail.to ?? [],
             subject: srcEmail.subject ?? "",
@@ -93,9 +94,20 @@
         },
     });
 
-    let body = $derived(
-        `<p></p><br/><br/><blockquote>${previousContents.html ?? previousContents.plainText}</blockquote>`,
-    );
+    const body = $derived.by(() => {
+        if (previousContents) {
+            return `<p></p><br/><br/><blockquote>${previousContents.html ?? previousContents.plainText}</blockquote>`;
+        }
+        return "";
+    });
+
+    function trySend() {
+        validate().then((result) => {
+            if (result.success) {
+                // Send email logic here
+            }
+        });
+    }
 </script>
 
 <div class="h-full flex flex-col">
@@ -148,13 +160,19 @@
             </Field.Field>
         </Field.Group>
     </form>
-    <Tipex {body} floating />
+    <Tipex {body} floating class="grow" />
     <div class="mt-1 flex justify-end">
         <ButtonGroup.Root>
-            <Button variant="outline" class="hover:text-red-500">
+            <Button
+                variant="outline"
+                class="hover:text-red-500 transition-colors duration-300"
+            >
                 <TrashIcon />
             </Button>
-            <Button variant="outline">
+            <Button
+                variant="outline"
+                class="hover:text-green-500 transition-colors duration-300"
+            >
                 <SendIcon />
                 Send
             </Button>

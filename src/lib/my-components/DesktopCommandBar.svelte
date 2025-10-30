@@ -3,7 +3,7 @@
     import CalendarIcon from "@lucide/svelte/icons/calendar";
     import MailsIcon from "@lucide/svelte/icons/mails";
     import MailPlusIcon from "@lucide/svelte/icons/mail-plus";
-    import { WindowType } from "$lib/models";
+    import { WindowType, ComposeType } from "$lib/models";
     import { createDebounce } from "$lib/utils/debounce";
     import { windowProvider } from "$lib/pods/WindowsPod";
     let debounceClose = createDebounce();
@@ -34,7 +34,9 @@
     function openCompose() {
         windowProvider().open({
             type: WindowType.ComposeEmail,
-            props: {},
+            props: {
+                type: ComposeType.New,
+            },
             y: getOffset(),
         });
     }

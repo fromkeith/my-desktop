@@ -44,7 +44,7 @@
         const rect = root.getBoundingClientRect();
         offsetX = e.clientX - rect.left;
         offsetY = e.clientY - rect.top;
-        console.log(root)
+        console.log(root);
 
         startX = e.clientX;
         startY = e.clientY;
@@ -94,7 +94,11 @@
             <Button onclick={maximize} variant="outline">
                 <SquareIcon />
             </Button>
-            <Button onclick={close} variant="outline">
+            <Button
+                onclick={close}
+                variant="outline"
+                class="hover:bg-red-500 hover:text-white transition-colors duration-300"
+            >
                 <XIcon />
             </Button>
         </ButtonGroup.Root>

@@ -9,18 +9,24 @@
     import Progress from "$lib/components/ui/progress/progress.svelte";
     import { emailMessageProvider } from "$lib/pods/EmailMessagePod";
 
-    export let window: IWindow;
+    const {
+        window,
+        type,
+        last,
+        threadId,
+    }: {
+        window: IWindow;
+        type: ComposeType;
+        last: string | undefined;
+        threadId: string | undefined;
+    } = $props();
 
-    export let type: ComposeType;
-    export let last: string | undefined;
-    export let threadId: string | undefined;
+    const previousMessage = $derived(emailMessageProvider(last ?? ""));
 
-    $: previousMessage = emailMessageProvider(last ?? "");
+    const previousContents = $derived(emailContentsProvider(last ?? ""));
+    const loadingContents = $derived(previousContents.isLoading);
 
-    $: previousContents = emailContentsProvider(last ?? "");
-    $: loadingContents = previousContents.isLoading;
-
-    $: data = getInitialData(type, $previousMessage);
+    const data = $derived(getInitialData(type, $previousMessage));
 
     function getInitialData(
         type: ComposeType,
@@ -65,13 +71,15 @@
 <Window {window} scrollable={false}>
     <MailPlusIcon slot="window-top-left" />
     <div slot="content" class="h-full">
-        {#if $previousContents && data && !$loadingContents}
+        {#if !last && data}
+            <ComposeEmailContents srcEmail={data} />
+        {:else if $previousContents && data && !$loadingContents}
             <ComposeEmailContents
                 srcEmail={data}
                 previousContents={$previousContents}
             />
         {:else}
-            <Progress />
+            <Progress value={null} />
         {/if}
     </div>
 </Window>
