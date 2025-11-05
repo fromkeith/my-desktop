@@ -1,39 +1,43 @@
 import type { IAuthToken, IGmailEntry } from "$lib/models";
 import { Provider } from "svelteprovider";
-import { authHeaderProvider } from "$lib/pods/AuthPod";
+import { databaseProvider } from "$lib/pods/DatabasePod";
+import { Database } from "$lib/db/rxdb";
 
 interface IGmailRawHeader {
-  name: string;
-  value: string;
+    name: string;
+    value: string;
 }
 interface IGmailRawPayload {
-  headers: IGmailRawHeader[];
+    headers: IGmailRawHeader[];
 }
 // TODO: lets not do raw
 interface IGmailRaw {
-  id: string;
-  internalDate: string; // unix milliseconds or nano
-  payload: IGmailRawPayload;
-  snippet: string;
-  threadId: string;
+    id: string;
+    internalDate: string; // unix milliseconds or nano
+    payload: IGmailRawPayload;
+    snippet: string;
+    threadId: string;
 }
 
 export const dateFormat = new Intl.DateTimeFormat("en", {
-  month: "short",
-  day: "numeric",
+    month: "short",
+    day: "numeric",
 });
 
 class EmailListProvider extends Provider<IGmailEntry[]> {
-  constructor() {
-    super([], authHeaderProvider());
-  }
-  protected async build(headers: Headers): Promise<IGmailEntry[]> {
-    const resp = await fetch("/api/gmail/inbox", {
-      headers,
-    });
-    const rows: IGmailEntry[] = await resp.json();
-    return rows;
-  }
+    constructor() {
+        super([], databaseProvider());
+    }
+    protected async build(db: Database): Promise<IGmailEntry[]> {
+        const res = await db
+            .messages()
+            .find({
+                sort: [{ receivedAt: "desc" }],
+                limit: 100,
+            })
+            .exec();
+        return res;
+    }
 }
 
 export const emailListProvider = EmailListProvider.create();

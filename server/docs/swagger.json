@@ -99,6 +99,7 @@
             "type": "object",
             "required": [
                 "additionalReceivers",
+                "createdAt",
                 "headers",
                 "historyId",
                 "internalDate",
@@ -106,10 +107,12 @@
                 "messageId",
                 "receivedAt",
                 "receiver",
+                "revisionCount",
                 "sender",
                 "snippet",
                 "subject",
                 "threadId",
+                "updatedAt",
                 "userId"
             ],
             "properties": {
@@ -121,6 +124,9 @@
                             "$ref": "#/definitions/PersonInfo"
                         }
                     }
+                },
+                "createdAt": {
+                    "type": "string"
                 },
                 "headers": {
                     "type": "object",
@@ -155,6 +161,9 @@
                 "replyTo": {
                     "$ref": "#/definitions/PersonInfo"
                 },
+                "revisionCount": {
+                    "type": "integer"
+                },
                 "sender": {
                     "$ref": "#/definitions/PersonInfo"
                 },
@@ -167,6 +176,10 @@
                 "threadId": {
                     "type": "string"
                 },
+                "updatedAt": {
+                    "description": "For Sync + Conflict Resolution",
+                    "type": "string"
+                },
                 "userId": {
                     "type": "string"
                 }
@@ -175,8 +188,11 @@
         "GmailEntryBody": {
             "type": "object",
             "required": [
+                "createdAt",
                 "hasAttachments",
                 "messageId",
+                "revisionCount",
+                "updatedAt",
                 "userId"
             ],
             "properties": {
@@ -185,6 +201,9 @@
                     "items": {
                         "type": "string"
                     }
+                },
+                "createdAt": {
+                    "type": "string"
                 },
                 "hasAttachments": {
                     "type": "integer"
@@ -196,6 +215,13 @@
                     "type": "string"
                 },
                 "plainText": {
+                    "type": "string"
+                },
+                "revisionCount": {
+                    "type": "integer"
+                },
+                "updatedAt": {
+                    "description": "For Sync + Conflict Resolution",
                     "type": "string"
                 },
                 "userId": {

@@ -20,6 +20,7 @@
     $: windows = windowListProvider();
     $: isAuthValid = isAuthValidProvider();
     $: authLoading = isAuthValid.isLoading;
+    //
 </script>
 
 <main class="w-screen h-screen">

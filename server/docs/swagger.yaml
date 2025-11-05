@@ -8,6 +8,8 @@ definitions:
             $ref: '#/definitions/PersonInfo'
           type: array
         type: object
+      createdAt:
+        type: string
       headers:
         additionalProperties:
           type: string
@@ -30,6 +32,8 @@ definitions:
         type: array
       replyTo:
         $ref: '#/definitions/PersonInfo'
+      revisionCount:
+        type: integer
       sender:
         $ref: '#/definitions/PersonInfo'
       snippet:
@@ -38,10 +42,14 @@ definitions:
         type: string
       threadId:
         type: string
+      updatedAt:
+        description: For Sync + Conflict Resolution
+        type: string
       userId:
         type: string
     required:
     - additionalReceivers
+    - createdAt
     - headers
     - historyId
     - internalDate
@@ -49,10 +57,12 @@ definitions:
     - messageId
     - receivedAt
     - receiver
+    - revisionCount
     - sender
     - snippet
     - subject
     - threadId
+    - updatedAt
     - userId
     type: object
   GmailEntryBody:
@@ -61,6 +71,8 @@ definitions:
         items:
           type: string
         type: array
+      createdAt:
+        type: string
       hasAttachments:
         type: integer
       html:
@@ -69,11 +81,19 @@ definitions:
         type: string
       plainText:
         type: string
+      revisionCount:
+        type: integer
+      updatedAt:
+        description: For Sync + Conflict Resolution
+        type: string
       userId:
         type: string
     required:
+    - createdAt
     - hasAttachments
     - messageId
+    - revisionCount
+    - updatedAt
     - userId
     type: object
   PersonInfo:

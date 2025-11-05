@@ -19,7 +19,7 @@ import (
 // @Description  List the user's email inbox
 // @Tags         email
 // @Produce      json
-// @Success      200  {object}  []gmail_client.GmailEntry
+// @Success      200  {object}  []data.GmailEntry
 // @Router       /gmail/inbox [get]
 func ListInbox(r *gin.Context) {
 
@@ -106,7 +106,7 @@ func bootstrap(r *gin.Context) {
 // @Summary      List all messages in a thread
 // @Tags         email
 // @Produce      json
-// @Success      200  {object}  []gmail_client.GmailEntry
+// @Success      200  {object}  []data.GmailEntry
 // @Router       /gmail/thread/{threadId} [get]
 func ListThread(r *gin.Context) {
 	threadId := r.Param("threadId")
@@ -150,7 +150,7 @@ func ListThread(r *gin.Context) {
 // @Summary      Get the basic information about a message
 // @Tags         email
 // @Produce      json
-// @Success      200  {object}  gmail_client.GmailEntry
+// @Success      200  {object}  data.GmailEntry
 // @Router       /gmail/message/:messageId [get]
 func GetMessage(r *gin.Context) {
 	messageId := r.Param("messageId")
@@ -180,7 +180,7 @@ func GetMessage(r *gin.Context) {
 // @Summary      Get the contents of a message
 // @Tags         email
 // @Produce      json
-// @Success      200  {object}  gmail_client.GmailEntryBody
+// @Success      200  {object}  data.GmailEntryBody
 // @Router       /gmail/message/:messageId/contents [get]
 func GetMessageContents(r *gin.Context) {
 	messageId := r.Param("messageId")

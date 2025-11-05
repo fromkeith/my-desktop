@@ -105,6 +105,7 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "additionalReceivers",
+                "createdAt",
                 "headers",
                 "historyId",
                 "internalDate",
@@ -112,10 +113,12 @@ const docTemplate = `{
                 "messageId",
                 "receivedAt",
                 "receiver",
+                "revisionCount",
                 "sender",
                 "snippet",
                 "subject",
                 "threadId",
+                "updatedAt",
                 "userId"
             ],
             "properties": {
@@ -127,6 +130,9 @@ const docTemplate = `{
                             "$ref": "#/definitions/PersonInfo"
                         }
                     }
+                },
+                "createdAt": {
+                    "type": "string"
                 },
                 "headers": {
                     "type": "object",
@@ -161,6 +167,9 @@ const docTemplate = `{
                 "replyTo": {
                     "$ref": "#/definitions/PersonInfo"
                 },
+                "revisionCount": {
+                    "type": "integer"
+                },
                 "sender": {
                     "$ref": "#/definitions/PersonInfo"
                 },
@@ -173,6 +182,10 @@ const docTemplate = `{
                 "threadId": {
                     "type": "string"
                 },
+                "updatedAt": {
+                    "description": "For Sync + Conflict Resolution",
+                    "type": "string"
+                },
                 "userId": {
                     "type": "string"
                 }
@@ -181,8 +194,11 @@ const docTemplate = `{
         "GmailEntryBody": {
             "type": "object",
             "required": [
+                "createdAt",
                 "hasAttachments",
                 "messageId",
+                "revisionCount",
+                "updatedAt",
                 "userId"
             ],
             "properties": {
@@ -191,6 +207,9 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                },
+                "createdAt": {
+                    "type": "string"
                 },
                 "hasAttachments": {
                     "type": "integer"
@@ -202,6 +221,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "plainText": {
+                    "type": "string"
+                },
+                "revisionCount": {
+                    "type": "integer"
+                },
+                "updatedAt": {
+                    "description": "For Sync + Conflict Resolution",
                     "type": "string"
                 },
                 "userId": {

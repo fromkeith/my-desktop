@@ -4,6 +4,7 @@ import (
 	"fromkeith/my-desktop-server/globals"
 	"fromkeith/my-desktop-server/gmail/data"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -11,8 +12,8 @@ import (
 )
 
 type SyncCheckpoint struct {
-	Id        string `json:"id"`
-	UpdatedAt uint64 `json:"updatedAt"`
+	MessageId string `json:"messageId"`
+	UpdatedAt string `json:"updatedAt"`
 }
 
 type PullMessagesResponse struct {
@@ -22,13 +23,9 @@ type PullMessagesResponse struct {
 
 func PullMessage(r *gin.Context) {
 	messageId := r.Query("messageId")
-	if messageId == "" {
-		r.JSON(400, gin.H{"error": "messageId is required"})
-		return
-	}
 	lastId := toDocumentIdRequest(r, messageId)
 	updatedAtStr := r.Query("updatedAt")
-	updatedAt, _ := strconv.ParseUint(updatedAtStr, 10, 64)
+	updatedAt, _ := time.Parse(time.RFC3339Nano, updatedAtStr)
 
 	batchSizeStr := r.Query("batchSize")
 	batchSize, _ := strconv.ParseInt(batchSizeStr, 10, 64)
@@ -39,11 +36,12 @@ func PullMessage(r *gin.Context) {
 	opts := options.Find().SetSort(bson.D{{"updatedAt", 1}, {"_id", 1}}).SetLimit(batchSize)
 	cursor, err := globals.DocDb().Collection("Messages").Find(
 		r,
-		bson.D{
-			{
-				"$or", []bson.D{
-					bson.D{{"updatedAt", bson.D{{"$gt", updatedAt}}}},
-					bson.D{{"updatedAt", bson.D{{"$eq", updatedAt}, {"_id", bson.D{{"$gt", lastId}}}}}},
+		bson.M{
+			"$or": []bson.M{
+				bson.M{"updatedAt": bson.M{"$gt": updatedAt}},
+				bson.M{
+					"updatedAt": updatedAt,
+					"_id":       bson.M{"$gt": lastId},
 				},
 			},
 		},
@@ -62,18 +60,18 @@ func PullMessage(r *gin.Context) {
 	}
 
 	var nextId string
-	var nextUpdatedAt uint64
+	var nextUpdatedAt string
 	if len(messages) > 0 {
 		last := messages[len(messages)-1]
-		nextId = toDocumentIdRequest(r, last.MessageId)
-		nextUpdatedAt = last.HistoryId
+		nextId = last.MessageId
+		nextUpdatedAt = last.UpdatedAt.Format(time.RFC3339Nano)
 	} else {
-		nextId = lastId
-		nextUpdatedAt = updatedAt
+		nextId = messageId
+		nextUpdatedAt = updatedAtStr
 	}
 
 	r.JSON(200, PullMessagesResponse{
 		Messages:   messages,
-		Checkpoint: SyncCheckpoint{Id: nextId, UpdatedAt: nextUpdatedAt},
+		Checkpoint: SyncCheckpoint{MessageId: nextId, UpdatedAt: nextUpdatedAt},
 	})
 }
