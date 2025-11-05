@@ -1,10 +1,11 @@
-package gmail_client
+package client
 
 import (
 	"context"
 	"encoding/base64"
 	"fromkeith/my-desktop-server/globals"
-	"fromkeith/my-desktop-server/gmail/gmail_oauth"
+	"fromkeith/my-desktop-server/gmail/data"
+
 	"log"
 	"strings"
 	"sync"
@@ -20,18 +21,20 @@ import (
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type gmailClient struct {
-	svc    *gmail.Service
-	userId string
+	svc       *gmail.Service
+	userId    string
+	accountId string
 }
 
 func GmailClient(ctx context.Context, accountId string, setToBackground bool) (*gmailClient, error) {
-	svc, userId, err := gmail_oauth.GmailClientForUser(ctx, accountId, setToBackground)
+	svc, userId, err := GmailClientForUser(ctx, accountId, setToBackground)
 	if err != nil {
 		return nil, err
 	}
 	return &gmailClient{
-		svc:    svc,
-		userId: userId,
+		svc:       svc,
+		userId:    userId,
+		accountId: accountId,
 	}, nil
 }
 func GmailClientFor(ctx context.Context, setToBackground bool) (*gmailClient, error) {
@@ -40,7 +43,7 @@ func GmailClientFor(ctx context.Context, setToBackground bool) (*gmailClient, er
 }
 
 // loads the first 500 messages
-func (g *gmailClient) Boostrap(ctx context.Context) error {
+func (g *gmailClient) Bootstrap(ctx context.Context) error {
 	log.Println("Bootstrapping gmail inbox")
 
 	// get this up front, so we have the right history id at the end
@@ -52,7 +55,7 @@ func (g *gmailClient) Boostrap(ctx context.Context) error {
 	lastHistoryId := prof.HistoryId
 
 	pageToken := ""
-	var remaining int64 = 500
+	var remaining int64 = 10
 
 	const workers = 8
 	idCh := make(chan string, 500)
@@ -202,14 +205,15 @@ func (g *gmailClient) fetchContentsWorker(ctx context.Context, wg *sync.WaitGrou
 			continue
 		}
 		headers := headerMap(msg.Payload.Headers)
-		var replyTo *PersonInfo
+		var replyTo *data.PersonInfo
 		r := personFrom(headers, "reply-to")
 		if r.Email != "" {
 			replyTo = &r
 		}
 
-		entry := GmailEntry{
+		entry := data.GmailEntry{
 			UserId:       g.userId,
+			AccountId:    g.accountId,
 			MessageId:    msg.Id,
 			ThreadId:     msg.ThreadId,
 			Labels:       msg.LabelIds,
@@ -222,133 +226,47 @@ func (g *gmailClient) fetchContentsWorker(ctx context.Context, wg *sync.WaitGrou
 			Receiver:     peopleFrom(headers, "to"),
 			ReceivedAt:   headers["date"],
 			ReplyTo:      replyTo,
-			AdditionalReceivers: map[string][]PersonInfo{
+			AdditionalReceivers: map[string][]data.PersonInfo{
 				"bcc": peopleFrom(headers, "bcc"),
 				"cc":  peopleFrom(headers, "cc"),
 			},
 		}
+		log.Println("Entry", entry)
 		maxInternalDate = max(maxInternalDate, entry.InternalDate)
-
-		labelsJson, _ := json.MarshalToString(entry.Labels)
-		headersJson, _ := json.MarshalToString(entry.Headers)
-		senderJson, _ := json.MarshalToString(entry.Sender)
-		receiverJson, _ := json.MarshalToString(entry.Receiver)
-		replyToJson, _ := json.MarshalToString(entry.ReplyTo)
-		additionalReceiversJson, _ := json.MarshalToString(entry.AdditionalReceivers)
-		_, err = globals.Db().ExecContext(ctx, `
-		INSERT OR REPLACE INTO gmail_entries (
-			user_id,
-		    message_id,
-		    thread_id,
-		    labels,
-			subject,
-		    snippet,
-		    history_id,
-		    internal_date,
-		    headers,
-		    sender,
-		    receiver,
-		    received_at,
-		    reply_to,
-		    additional_receivers
-		) VALUES (
-			?,
-			?,
-			?,
-			jsonb(?),
-			?,
-			?,
-			?,
-			?,
-			jsonb(?),
-			jsonb(?),
-			jsonb(?),
-			?,
-			jsonb(?),
-			jsonb(?)
-		)
-			`,
-			entry.UserId,
-			entry.MessageId,
-			entry.ThreadId,
-			labelsJson,
-			entry.Subject,
-			entry.Snippet,
-			entry.HistoryId,
-			entry.InternalDate,
-			headersJson,
-			senderJson,
-			receiverJson,
-			entry.ReceivedAt,
-			replyToJson,
-			additionalReceiversJson,
-		)
-		if err != nil {
-			log.Println("Failed to insert message meta", err)
-			errCh <- err
-			continue
-		}
+		data.WriteGmailEntry(entry)
 		text, html, hasAtt, inlineIds := extractBodies(msg.Payload)
 		hasAttInt := 0
 		if hasAtt {
 			hasAttInt = 1
 		}
-		body := GmailEntryBody{
+		body := data.GmailEntryBody{
 			UserId:         entry.UserId,
 			MessageId:      entry.MessageId,
+			AccountId:      entry.AccountId,
 			PlainText:      text,
 			Html:           html,
 			HasAttachments: hasAttInt,
 			AttachmentIds:  inlineIds,
 		}
-		attachmentIdsJson, _ := json.MarshalToString(body.AttachmentIds)
-		_, err = globals.Db().ExecContext(ctx, `
-		INSERT OR REPLACE INTO gmail_entry_bodies (
-		    user_id,
-		    message_id,
-		    plain_text,
-		    html,
-		    has_attachments,
-		    attachment_ids
-		) VALUES (
-			?,
-			?,
-			?,
-			?,
-			?,
-			jsonb(?)
-		)
-		`,
-			body.UserId,
-			body.MessageId,
-			body.PlainText,
-			body.Html,
-			body.HasAttachments,
-			attachmentIdsJson,
-		)
-		if err != nil {
-			log.Println("Failed to insert message body", err)
-			errCh <- err
-			continue
-		}
+		data.WriteGmailEntryBody(body)
 	}
 	log.Println("done fetching contents")
 	maxInternalDateChan <- maxInternalDate
 
 }
 
-func peopleFrom(headers map[string]string, field string) []PersonInfo {
+func peopleFrom(headers map[string]string, field string) []data.PersonInfo {
 	entry, ok := headers[field]
 	if !ok {
-		return make([]PersonInfo, 0)
+		return make([]data.PersonInfo, 0)
 	}
 	addrs, err := mail.ParseAddressList(entry)
 	if err != nil {
-		return make([]PersonInfo, 0)
+		return make([]data.PersonInfo, 0)
 	}
-	out := make([]PersonInfo, 0, len(addrs))
+	out := make([]data.PersonInfo, 0, len(addrs))
 	for _, addr := range addrs {
-		out = append(out, PersonInfo{
+		out = append(out, data.PersonInfo{
 			Email: addr.Address,
 			Name:  addr.Name,
 		})
@@ -356,17 +274,17 @@ func peopleFrom(headers map[string]string, field string) []PersonInfo {
 	return out
 }
 
-func personFrom(headers map[string]string, field string) PersonInfo {
+func personFrom(headers map[string]string, field string) data.PersonInfo {
 	entry, ok := headers[field]
 	if !ok {
-		return PersonInfo{}
+		return data.PersonInfo{}
 	}
 
 	addr, err := mail.ParseAddress(entry)
 	if err != nil {
-		return PersonInfo{}
+		return data.PersonInfo{}
 	}
-	return PersonInfo{
+	return data.PersonInfo{
 		Email: addr.Address,
 		Name:  addr.Name,
 	}
@@ -392,10 +310,10 @@ func extractBodies(p *gmail.MessagePart) (text string, html string, hasAttachmen
 	if p == nil {
 		return
 	}
-	log.Println("::: MimeType", p.MimeType)
-	for h := range p.Headers {
-		log.Println("headers ", h, p.Headers[h].Name, p.Headers[h].Value)
-	}
+	// log.Println("::: MimeType", p.MimeType)
+	// for h := range p.Headers {
+	// 	log.Println("headers ", h, p.Headers[h].Name, p.Headers[h].Value)
+	// }
 
 	switch {
 	case strings.HasPrefix(p.MimeType, "multipart/"):

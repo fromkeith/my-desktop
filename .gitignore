@@ -29,3 +29,4 @@ dist-ssr
 *.exe
 # auto generated via: npm run models
 src/lib/models/server.ts
+server/.mongodb/

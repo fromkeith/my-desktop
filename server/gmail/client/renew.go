@@ -1,4 +1,4 @@
-package gmail_oauth
+package client
 
 import (
 	"context"
@@ -34,7 +34,7 @@ func (s *storingTokenSource) Token() (*oauth2.Token, error) {
 		Scope:        "", // optional: persist actual granted scope string
 	}
 
-	_ = saveGmailTokenRecord(context.Background(), s.accountId, rec)
+	_ = SaveGmailTokenRecord(context.Background(), s.accountId, rec)
 	return t, nil
 }
 
@@ -62,7 +62,6 @@ func GmailClientForUser(ctx context.Context, accountId string, setToBackground b
 	}
 	// Base source that knows how to refresh via Google
 	baseSrc := oauthConfig.TokenSource(bkg, baseTok)
-
 	// ReuseTokenSource caches until near expiry; when it refreshes, we want to persist.
 	reuse := oauth2.ReuseTokenSource(baseTok, baseSrc)
 

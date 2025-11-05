@@ -1,4 +1,4 @@
-package gmail_oauth
+package client
 
 import (
 	"context"
@@ -74,7 +74,7 @@ func loadGmailTokenRecord(r *gin.Context, accountId string) (*oauth_basic.TokenR
 	return oauth_basic.LoadTokenRecord(r, accountId, "google")
 }
 
-func saveGmailTokenRecord(r context.Context, accountId string, rec oauth_basic.TokenRecord) error {
+func SaveGmailTokenRecord(r context.Context, accountId string, rec oauth_basic.TokenRecord) error {
 	return oauth_basic.SaveTokenRecord(r, accountId, rec)
 }
 
@@ -159,7 +159,7 @@ func HandleCallback(r *gin.Context) {
 		TokenType:    tok.TokenType,
 		Scope:        "", // optional: persist actual granted scope string
 	}
-	if err := saveGmailTokenRecord(r, existingAccountId, rec); err != nil {
+	if err := SaveGmailTokenRecord(r, existingAccountId, rec); err != nil {
 		log.Println(err)
 		r.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to save token"})
 		return
@@ -176,6 +176,10 @@ func HandleCallback(r *gin.Context) {
 			return
 		}
 		extraQuery = "?auth=" + tokenString
+
+		bkg := context.Background()
+		client, _ := GmailClient(bkg, existingAccountId, true)
+		go client.Bootstrap(bkg)
 	}
 
 	// Done — redirect back to your app
