@@ -14,6 +14,7 @@
         contact: IPersonInfo;
         doCopy?: boolean;
         doClose?: boolean;
+        showEmail?: boolean;
         onremove?: (c: IPersonInfo) => void;
         highlight: { tooltip: string; class: string } | undefined;
     } = $props();

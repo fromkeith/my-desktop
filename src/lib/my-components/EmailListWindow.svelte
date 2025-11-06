@@ -6,16 +6,24 @@
 
     import type { IWindow } from "$lib/models";
 
-    export let window: IWindow;
+    let {
+        window,
+        labels,
+        title,
+    }: {
+        window: IWindow;
+        labels?: string[];
+        title?: string;
+    } = $props();
 
-    $: emails = emailListProvider();
+    let emails = $derived(emailListProvider(labels));
 </script>
 
-<Window {window}>
+<Window {window} {title}>
     <MailsIcon slot="window-top-left" />
     <div slot="content">
         {#each $emails as email (email.messageId)}
-            <EmailRow isRead={false} {email} />
+            <EmailRow {email} />
         {/each}
     </div>
 </Window>

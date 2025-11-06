@@ -2,6 +2,7 @@ import type { IAuthToken, IGmailEntry } from "$lib/models";
 import { Provider } from "svelteprovider";
 import { databaseProvider } from "$lib/pods/DatabasePod";
 import { Database } from "$lib/db/rxdb";
+import type { MangoQuery } from "rxdb";
 
 interface IGmailRawHeader {
     name: string;
@@ -25,17 +26,20 @@ export const dateFormat = new Intl.DateTimeFormat("en", {
 });
 
 class EmailListProvider extends Provider<IGmailEntry[]> {
-    constructor() {
+    private labels: string[];
+    constructor(labels: string[] = []) {
         super([], databaseProvider());
+        this.labels = labels;
     }
     protected async build(db: Database): Promise<IGmailEntry[]> {
-        const res = await db
-            .messages()
-            .find({
-                sort: [{ receivedAt: "desc" }],
-                limit: 100,
-            })
-            .exec();
+        const query: MangoQuery<IGmailEntry> = {
+            sort: [{ receivedAt: "desc" }],
+            limit: 100,
+        };
+        if (this.labels.length > 0) {
+            query.selector = { labels: { $in: this.labels } };
+        }
+        const res = await db.messages().find(query).exec();
         return res;
     }
 }

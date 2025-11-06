@@ -9,6 +9,7 @@
 
     export let scrollable = true;
     export let window: IWindow;
+    export let title: string | undefined;
 
     setContext("window", window);
 
@@ -139,7 +140,7 @@
     >
         <Card.Root class="overflow-hidden pt-0 h-full cursor-auto">
             <Card.Header class="px-1">
-                <WindowBar on:move={move} {x} {y}>
+                <WindowBar on:move={move} {x} {y} {title}>
                     <slot slot="window-top-left" name="window-top-left" />
                 </WindowBar>
             </Card.Header>

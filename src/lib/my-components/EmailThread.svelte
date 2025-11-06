@@ -80,11 +80,17 @@
     }
 </script>
 
-<h1 class="text-lg">{email.subject}</h1>
+<h1 class="text-xs">{email.subject}</h1>
 <div class="mb-2 mr-2">
     <div class="text-md">
-        <span class="font-bold mr-1">From</span>
-        <span>{email.sender.name} &lt;{email.sender.email}&gt;</span>
+        <div class="w-full flex">
+            <span class="font-bold mr-1">From</span>
+            <ShortenedEmailList
+                contacts={[email.sender]}
+                hideCounter={true}
+                doClose={false}
+            />
+        </div>
     </div>
     <div class="text-sm">
         <div class="w-full flex">

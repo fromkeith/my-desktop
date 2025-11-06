@@ -12,6 +12,7 @@
 
     export let x = 0;
     export let y = 0;
+    export let title: string | undefined;
 
     let myWindow = getContext("window");
 
@@ -83,9 +84,15 @@
     on:pointerup={onPointerUp}
     on:pointercancel={onPointerUp}
     on:pointerdown={onPointerDown}
+    class="overflow-hidden w-full"
 >
-    <div class="flex m-2">
+    <div class="flex m-2 box-border">
         <slot name="window-top-left" />
+        <div
+            class="text-lg ml-2 overflow-hidden text-ellipsis whitespace-nowrap"
+        >
+            {#if title}{title}{/if}
+        </div>
         <div class="grow"></div>
         <ButtonGroup.Root>
             <Button onclick={minimize} variant="outline">

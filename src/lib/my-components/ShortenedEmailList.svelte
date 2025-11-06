@@ -10,12 +10,14 @@
         doClose = false,
         onremove,
         highlight = new Map(),
+        hideCounter = false,
     }: {
         contacts: IPersonInfo[];
         doCopy?: boolean;
         doClose?: boolean;
         onremove?: (c: IPersonInfo) => void;
         highlight?: Map<number, { tooltip: string; class: string }>;
+        hideCounter?: boolean;
     } = $props();
 
     let expanded = $state(false);
@@ -40,10 +42,12 @@
                 {/if}
             {/each}
         </div>
-        <div class="text-sm w-16 flex justify-end">
-            {contacts.length}
-            <UsersRoundIcon class="size-4 ml-1" />
-        </div>
+        {#if !hideCounter}
+            <div class="text-sm w-16 flex justify-end">
+                {contacts.length}
+                <UsersRoundIcon class="size-4 ml-1" />
+            </div>
+        {/if}
     </button>
 {:else}
     <div class="flex w-full justify-between items-start">

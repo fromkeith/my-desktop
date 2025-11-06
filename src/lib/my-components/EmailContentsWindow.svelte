@@ -8,7 +8,7 @@
     export let email: IGmailEntry;
 </script>
 
-<Window {window}>
+<Window {window} title={email.subject}>
     <MailOpenIcon slot="window-top-left" />
     <EmailThread slot="content" {email} />
 </Window>
