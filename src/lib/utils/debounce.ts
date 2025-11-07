@@ -1,3 +1,7 @@
+/**
+ *
+ * @returns a promise that will reject if we are debounced
+ */
 export function createDebounce() {
     let t: NodeJS.Timeout;
     let abort: (() => void) | undefined;

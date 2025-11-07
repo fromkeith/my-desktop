@@ -28,6 +28,7 @@ type GmailEntry struct {
 	ReceivedAt          string                  `validate:"required" bson:"receivedAt"`
 	ReplyTo             *PersonInfo             `json:",omitempty" bson:"replyTo"`
 	AdditionalReceivers map[string][]PersonInfo `validate:"required" bson:"additionalReceivers"`
+	IsDeleted           bool                    `validate:"required" bson:"isDeleted"`
 	// used in database, but not returned via API
 	AccountId string `json:"-" bson:"accountId"`
 	// For Sync + Conflict Resolution

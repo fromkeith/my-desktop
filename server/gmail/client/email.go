@@ -6,13 +6,135 @@ import (
 	"fromkeith/my-desktop-server/globals"
 	"fromkeith/my-desktop-server/gmail/data"
 	"log"
+	"math"
 	"net/mail"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"google.golang.org/api/gmail/v1"
 	"google.golang.org/api/googleapi"
 )
+
+func (g *googleClient) SyncEmail(ctx context.Context, syncToken string) error {
+
+	var startHistoryId uint64
+	startHistoryId, _ = strconv.ParseUint(syncToken, 10, 64)
+	var nextHistoryId uint64 = startHistoryId
+
+	const workers = 4
+	idCh := make(chan string, 500)
+	errCh := make(chan error, 500)
+	maxInternalDateChan := make(chan int64, workers)
+	var wg sync.WaitGroup
+	wg.Add(workers)
+
+	for range workers {
+		go g.fetchContentsWorker(ctx, &wg, idCh, errCh, maxInternalDateChan)
+	}
+	pageToken := ""
+
+	log.Println("startHistory", startHistoryId)
+
+	for {
+
+		listCall := g.gmail.Users.History.
+			List("me").
+			StartHistoryId(startHistoryId).
+			MaxResults(500)
+
+		if pageToken != "" {
+			listCall = listCall.PageToken(pageToken)
+		}
+		// get a list of messages ids
+		listRes, err := listCall.Do()
+		if err != nil {
+			return err
+		}
+		nextHistoryId = listRes.HistoryId
+		if len(listRes.History) == 0 {
+			break
+		}
+		for _, history := range listRes.History {
+			// new messages
+			for _, message := range history.MessagesAdded {
+				idCh <- message.Message.Id
+			}
+			// deleted messages.. not trashed.. actually deleted
+			for _, message := range history.MessagesDeleted {
+				data.DeleteGmailEntry(g.accountId, message.Message.Id)
+			}
+			for _, message := range history.LabelsAdded {
+				data.UpdateGmailEntryFields(g.accountId, message.Message.Id, bson.M{
+					"$addToSet": bson.M{
+						"labels": bson.D{{"$each", message.LabelIds}},
+					},
+				})
+			}
+			for _, message := range history.LabelsRemoved {
+				data.UpdateGmailEntryFields(g.accountId, message.Message.Id, bson.M{
+					"$pull": bson.M{
+						"labels": bson.D{{"$in", message.LabelIds}},
+					},
+				})
+			}
+		}
+		if listRes.NextPageToken == "" {
+			break
+		}
+		pageToken = listRes.NextPageToken
+
+	}
+
+	close(idCh)
+	// wait until we are done, helper
+	doneWait := make(chan bool)
+	go func() {
+		wg.Wait()
+		log.Println("done watiting")
+		doneWait <- true
+	}()
+	// waits until done and gets all errors out
+	var minInternalDate int64 = math.MaxInt64
+errorLoop:
+	for {
+		select {
+		case err := <-errCh:
+			log.Println("Had error fetching", err)
+		case maxD := <-maxInternalDateChan:
+			minInternalDate = min(maxD, minInternalDate)
+		case <-doneWait:
+			break errorLoop
+		}
+	}
+
+	_, err := globals.Db().ExecContext(ctx, `
+	INSERT INTO gmail_sync_status (
+		user_id,
+		history_id,
+		until,
+		last_sync_time
+	) VALUES (?, ?, ?, ?)
+	ON CONFLICT(user_id) DO UPDATE SET
+		history_id = excluded.history_id,
+		until = MIN(excluded.until, until),
+		last_sync_time = MAX(excluded.last_sync_time, until)
+		`,
+		g.userId,
+		nextHistoryId,
+		minInternalDate,
+		time.Now().Format(time.RFC3339),
+	)
+	if err != nil {
+		log.Println("Failed to save sync status", err)
+	}
+
+	log.Println("done syncing", nextHistoryId)
+	return nil
+
+}
 
 // loads the first 500 messages
 func (g *googleClient) BootstrapEmail(ctx context.Context) error {
@@ -80,14 +202,14 @@ func (g *googleClient) BootstrapEmail(ctx context.Context) error {
 		doneWait <- true
 	}()
 	// waits until done and gets all errors out
-	var maxInternalDate int64 = 0
+	var minInternalDate int64 = math.MaxInt64
 errorLoop:
 	for {
 		select {
 		case err := <-errCh:
 			log.Println("Had error fetching", err)
 		case maxD := <-maxInternalDateChan:
-			maxInternalDate = max(maxD, maxInternalDate)
+			minInternalDate = min(maxD, minInternalDate)
 		case <-doneWait:
 			break errorLoop
 		}
@@ -98,15 +220,18 @@ errorLoop:
 	INSERT INTO gmail_sync_status (
 		user_id,
 		history_id,
-		until
-	) VALUES (?, ?, ?)
+		until,
+		last_sync_time
+	) VALUES (?, ?, ?, ?)
 	ON CONFLICT(user_id) DO UPDATE SET
 		history_id = excluded.history_id,
-		until = MAX(excluded.until, until)
+		until = MIN(excluded.until, until),
+		last_sync_time = MAX(excluded.last_sync_time, until)
 		`,
 		g.userId,
 		lastHistoryId,
-		maxInternalDate,
+		minInternalDate,
+		time.Now().Format(time.RFC3339),
 	)
 	if err != nil {
 		log.Println("Failed to save sync status", err)
@@ -198,6 +323,7 @@ func (g *googleClient) fetchContentsWorker(ctx context.Context, wg *sync.WaitGro
 			Receiver:     peopleFrom(headers, "to"),
 			ReceivedAt:   headers["date"],
 			ReplyTo:      replyTo,
+			IsDeleted:    false,
 			AdditionalReceivers: map[string][]data.PersonInfo{
 				"bcc": peopleFrom(headers, "bcc"),
 				"cc":  peopleFrom(headers, "cc"),

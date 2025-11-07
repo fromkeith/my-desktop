@@ -2,6 +2,7 @@ package people
 
 import (
 	"fromkeith/my-desktop-server/globals"
+	"fromkeith/my-desktop-server/gmail/client"
 	"fromkeith/my-desktop-server/gmail/data"
 	"strconv"
 	"time"
@@ -29,6 +30,7 @@ type PullPeopleResponse struct {
 // @Success      200  {object}  PullPeopleResponse
 // @Router       /people/pull [get]
 func PullPeople(r *gin.Context) {
+	accountId := r.GetString("accountId")
 	personId := r.Query("personId")
 	lastId := toDocumentIdRequest(r, personId)
 	updatedAtStr := r.Query("updatedAt")
@@ -51,6 +53,7 @@ func PullPeople(r *gin.Context) {
 					"_id":       bson.M{"$gt": lastId},
 				},
 			},
+			"accountId": accountId,
 		},
 		opts,
 	)
@@ -75,6 +78,9 @@ func PullPeople(r *gin.Context) {
 	} else {
 		nextId = personId
 		nextUpdatedAt = updatedAtStr
+	}
+	if len(people) < int(batchSize) {
+		go client.CheckForGmailsUpdates(accountId)
 	}
 
 	r.JSON(200, PullPeopleResponse{

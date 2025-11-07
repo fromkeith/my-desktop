@@ -36,6 +36,7 @@ func main() {
 	bkg := context.Background()
 	go data.StartWriter(bkg)
 	go data.StartBodyWriter(bkg)
+	go client.StartBackgroundRefresher(bkg)
 
 	defer bkg.Done()
 

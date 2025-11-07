@@ -2,7 +2,9 @@ import type { IAuthToken, IGmailEntry } from "$lib/models";
 import { Provider } from "svelteprovider";
 import { databaseProvider } from "$lib/pods/DatabasePod";
 import { Database } from "$lib/db/rxdb";
-import type { MangoQuery } from "rxdb";
+import type { MangoQuery, RxDocument } from "rxdb";
+import { type Readable } from "svelte/store";
+import { observableToStore } from "$lib/utils/observableToStore";
 
 interface IGmailRawHeader {
     name: string;
@@ -25,13 +27,13 @@ export const dateFormat = new Intl.DateTimeFormat("en", {
     day: "numeric",
 });
 
-class EmailListProvider extends Provider<IGmailEntry[]> {
+class EmailListProvider extends Provider<RxDocument<IGmailEntry, {}>[]> {
     private labels: string[];
     constructor(labels: string[] = []) {
         super([], databaseProvider());
         this.labels = labels;
     }
-    protected async build(db: Database): Promise<IGmailEntry[]> {
+    protected build(db: Database): Readable<RxDocument<IGmailEntry, {}>[]> {
         const query: MangoQuery<IGmailEntry> = {
             sort: [{ internalDate: "desc" }],
             limit: 100,
@@ -39,8 +41,7 @@ class EmailListProvider extends Provider<IGmailEntry[]> {
         if (this.labels.length > 0) {
             query.selector = { labels: { $in: this.labels } };
         }
-        const res = await db.messages().find(query).exec();
-        return res;
+        return observableToStore(db.messages().find(query).$, []);
     }
 }
 

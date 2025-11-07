@@ -2,6 +2,7 @@ package messages
 
 import (
 	"fromkeith/my-desktop-server/globals"
+	"fromkeith/my-desktop-server/gmail/client"
 	"fromkeith/my-desktop-server/gmail/data"
 	"strconv"
 	"time"
@@ -22,6 +23,7 @@ type PullMessagesResponse struct {
 }
 
 func PullMessage(r *gin.Context) {
+	accountId := r.GetString("accountId")
 	messageId := r.Query("messageId")
 	lastId := toDocumentIdRequest(r, messageId)
 	updatedAtStr := r.Query("updatedAt")
@@ -44,6 +46,7 @@ func PullMessage(r *gin.Context) {
 					"_id":       bson.M{"$gt": lastId},
 				},
 			},
+			"accountId": accountId,
 		},
 		opts,
 	)
@@ -68,6 +71,9 @@ func PullMessage(r *gin.Context) {
 	} else {
 		nextId = messageId
 		nextUpdatedAt = updatedAtStr
+	}
+	if len(messages) < int(batchSize) {
+		go client.CheckForGmailsUpdates(accountId)
 	}
 
 	r.JSON(200, PullMessagesResponse{

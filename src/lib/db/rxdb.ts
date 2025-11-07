@@ -47,6 +47,7 @@ const messageSchema = {
         snippet: { type: "string" },
         subject: { type: "string" },
         threadId: { type: "string" },
+        isDeleted: { type: "boolean" },
         /** For Sync + Conflict Resolution */
         updatedAt: { type: "string" },
         userId: { type: "string" },
