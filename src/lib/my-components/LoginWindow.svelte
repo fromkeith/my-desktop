@@ -17,8 +17,8 @@
 </script>
 
 <Window {window}>
-    <div slot="content">
+    {#snippet content()}
         <p>Login to My Desktop</p>
         <OAuth />
-    </div>
+    {/snippet}
 </Window>

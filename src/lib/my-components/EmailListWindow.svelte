@@ -20,10 +20,12 @@
 </script>
 
 <Window {window} {title}>
-    <MailsIcon slot="window-top-left" />
-    <div slot="content">
+    {#snippet windowTopLeft()}
+        <MailsIcon />
+    {/snippet}
+    {#snippet content()}
         {#each $emails as email (email.messageId)}
             <EmailRow {email} />
         {/each}
-    </div>
+    {/snippet}
 </Window>

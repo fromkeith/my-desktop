@@ -27,15 +27,6 @@ func WriteGmailEntryBody(entry GmailEntryBody) {
 	bodyQueue <- entry
 }
 
-func WaitForBodyWrite(accountId, messageId string, timeout time.Duration) {
-	select {
-	case <-time.After(timeout):
-		return
-	case <-bodyQueue:
-		log.Printf("body written for account %s and message %s", accountId, messageId)
-	}
-}
-
 func StartWriter(ctx context.Context) {
 	// blocks until 100 items read from the queue
 	// 5 seconds has passed, or the context is cancelled

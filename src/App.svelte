@@ -12,11 +12,13 @@
 
     import Progress from "$lib/components/ui/progress/progress.svelte";
     import LoginWindow from "$lib/my-components/LoginWindow.svelte";
+    import ContactListWindow from "$lib/my-components/ContactListWindow.svelte";
 
     const registery: Record<string, ConstructorOfATypedSvelteComponent> = {
         EmailListWindow: EmailListWindow,
         ComposeEmailWindow: ComposeEmailWindow,
         EmailContentsWindow: EmailContentsWindow,
+        ContactListWindow: ContactListWindow,
     };
     $: windows = windowListProvider();
     $: isAuthValid = isAuthValidProvider();

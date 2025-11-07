@@ -17,6 +17,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/gmail/v1"
+	"google.golang.org/api/people/v1"
 )
 
 var (
@@ -28,7 +29,13 @@ var (
 func SetupGoogle() {
 	creds := os.Getenv("GOOGLE_CREDENTIALS")
 	var err error
-	oauthConfig, err = google.ConfigFromJSON([]byte(creds), gmail.GmailReadonlyScope, "openid", "email", "profile")
+	oauthConfig, err = google.ConfigFromJSON([]byte(creds), gmail.GmailReadonlyScope,
+		"openid",
+		"email", "profile",
+		people.ContactsReadonlyScope,
+		people.ContactsOtherReadonlyScope,
+		people.DirectoryReadonlyScope,
+	)
 	if err != nil {
 		log.Fatalf("Unable to parse client secret to config: %v", err)
 	}

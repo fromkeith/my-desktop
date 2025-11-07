@@ -16,7 +16,7 @@
         doClose?: boolean;
         showEmail?: boolean;
         onremove?: (c: IPersonInfo) => void;
-        highlight: { tooltip: string; class: string } | undefined;
+        highlight?: { tooltip: string; class: string } | undefined;
     } = $props();
 
     let highlightClass = $derived(highlight?.class || "");

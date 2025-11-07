@@ -22,7 +22,7 @@
         previousContents,
         srcEmail,
     }: {
-        previousContents: IGmailEntryBody | undefined;
+        previousContents?: IGmailEntryBody | undefined;
         srcEmail: IComposeEmailMeta;
     } = $props();
 

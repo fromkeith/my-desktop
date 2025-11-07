@@ -8,8 +8,7 @@ import (
 	"fromkeith/my-desktop-server/gmail/data"
 	"fromkeith/my-desktop-server/messages"
 	"fromkeith/my-desktop-server/middleware"
-	"unicode"
-	"unicode/utf8"
+	"fromkeith/my-desktop-server/people"
 
 	// for swagger
 	_ "fromkeith/my-desktop-server/docs"
@@ -17,7 +16,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	jsoniter "github.com/json-iterator/go"
-	"github.com/json-iterator/go/extra"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -30,14 +28,7 @@ var json = jsoniter.ConfigCompatibleWithStandardLibrary
 // @host      localhost:5173
 // @BasePath  /api
 func main() {
-	// LowerCamelCase: just lowercase the first rune.
-	extra.SetNamingStrategy(func(name string) string {
-		if name == "" {
-			return name
-		}
-		r, size := utf8.DecodeRuneInString(name)
-		return string(unicode.ToLower(r)) + name[size:]
-	})
+	SetupJsonEncoding()
 
 	defer globals.CloseAll()
 
@@ -66,6 +57,9 @@ func main() {
 	r.GET("/api/messages/pull", messages.PullMessage)
 	r.GET("/api/messages/push", messages.PushMessage)
 	r.GET("/api/messages/pullStream", middleware.StreamHeaders(), messages.PullStream)
+
+	r.GET("/api/people/sync", people.SyncPeople)
+	r.GET("/api/people/pull", people.PullPeople)
 
 	// Start server on port 8080 (default)
 	// Server will listen on 0.0.0.0:8080 (localhost:8080 on Windows)

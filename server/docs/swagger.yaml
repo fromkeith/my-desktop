@@ -96,6 +96,26 @@ definitions:
     - updatedAt
     - userId
     type: object
+  GooglePerson:
+    properties:
+      createdAt:
+        type: string
+      person:
+        $ref: '#/definitions/people.Person'
+      personId:
+        type: string
+      revisionCount:
+        type: integer
+      updatedAt:
+        description: For Sync + Conflict Resolution
+        type: string
+    required:
+    - createdAt
+    - person
+    - personId
+    - revisionCount
+    - updatedAt
+    type: object
   PersonInfo:
     properties:
       email:
@@ -105,6 +125,1183 @@ definitions:
     required:
     - email
     - name
+    type: object
+  people.Address:
+    properties:
+      city:
+        description: 'City: The city of the address.'
+        type: string
+      country:
+        description: 'Country: The country of the address.'
+        type: string
+      countryCode:
+        description: |-
+          CountryCode: The ISO 3166-1 alpha-2
+          (http://www.iso.org/iso/country_codes.htm) country code of the address.
+        type: string
+      extendedAddress:
+        description: |-
+          ExtendedAddress: The extended address of the address; for example, the
+          apartment number.
+        type: string
+      formattedType:
+        description: |-
+          FormattedType: Output only. The type of the address translated and formatted
+          in the viewer's account locale or the `Accept-Language` HTTP header locale.
+        type: string
+      formattedValue:
+        description: |-
+          FormattedValue: The unstructured value of the address. If this is not set by
+          the user it will be automatically constructed from structured values.
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the address.'
+      poBox:
+        description: 'PoBox: The P.O. box of the address.'
+        type: string
+      postalCode:
+        description: 'PostalCode: The postal code of the address.'
+        type: string
+      region:
+        description: 'Region: The region of the address; for example, the state or
+          province.'
+        type: string
+      streetAddress:
+        description: 'StreetAddress: The street address.'
+        type: string
+      type:
+        description: |-
+          Type: The type of the address. The type can be custom or one of these
+          predefined values: * `home` * `work` * `other`
+        type: string
+    type: object
+  people.AgeRangeType:
+    properties:
+      ageRange:
+        description: |-
+          AgeRange: The age range.
+
+          Possible values:
+            "AGE_RANGE_UNSPECIFIED" - Unspecified.
+            "LESS_THAN_EIGHTEEN" - Younger than eighteen.
+            "EIGHTEEN_TO_TWENTY" - Between eighteen and twenty.
+            "TWENTY_ONE_OR_OLDER" - Twenty-one and older.
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the age range.'
+    type: object
+  people.Biography:
+    properties:
+      contentType:
+        description: |-
+          ContentType: The content type of the biography.
+
+          Possible values:
+            "CONTENT_TYPE_UNSPECIFIED" - Unspecified.
+            "TEXT_PLAIN" - Plain text.
+            "TEXT_HTML" - HTML text.
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the biography.'
+      value:
+        description: 'Value: The short biography.'
+        type: string
+    type: object
+  people.Birthday:
+    properties:
+      date:
+        allOf:
+        - $ref: '#/definitions/people.Date'
+        description: 'Date: The structured date of the birthday.'
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the birthday.'
+      text:
+        description: |-
+          Text: Prefer to use the `date` field if set. A free-form string representing
+          the user's birthday. This value is not validated.
+        type: string
+    type: object
+  people.BraggingRights:
+    properties:
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the bragging rights.'
+      value:
+        description: 'Value: The bragging rights; for example, `climbed mount everest`.'
+        type: string
+    type: object
+  people.CalendarUrl:
+    properties:
+      formattedType:
+        description: |-
+          FormattedType: Output only. The type of the calendar URL translated and
+          formatted in the viewer's account locale or the `Accept-Language` HTTP
+          header locale.
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the calendar URL.'
+      type:
+        description: |-
+          Type: The type of the calendar URL. The type can be custom or one of these
+          predefined values: * `home` * `freeBusy` * `work`
+        type: string
+      url:
+        description: 'Url: The calendar URL.'
+        type: string
+    type: object
+  people.ClientData:
+    properties:
+      key:
+        description: 'Key: The client specified key of the client data.'
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the client data.'
+      value:
+        description: 'Value: The client specified value of the client data.'
+        type: string
+    type: object
+  people.ContactGroupMembership:
+    properties:
+      contactGroupId:
+        description: |-
+          ContactGroupId: Output only. The contact group ID for the contact group
+          membership.
+        type: string
+      contactGroupResourceName:
+        description: |-
+          ContactGroupResourceName: The resource name for the contact group, assigned
+          by the server. An ASCII string, in the form of
+          `contactGroups/{contact_group_id}`. Only contact_group_resource_name can be
+          used for modifying memberships. Any contact group membership can be removed,
+          but only user group or "myContacts" or "starred" system groups memberships
+          can be added. A contact must always have at least one contact group
+          membership.
+        type: string
+    type: object
+  people.CoverPhoto:
+    properties:
+      default:
+        description: |-
+          Default: True if the cover photo is the default cover photo; false if the
+          cover photo is a user-provided cover photo.
+        type: boolean
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the cover photo.'
+      url:
+        description: 'Url: The URL of the cover photo.'
+        type: string
+    type: object
+  people.Date:
+    properties:
+      day:
+        description: |-
+          Day: Day of a month. Must be from 1 to 31 and valid for the year and month,
+          or 0 to specify a year by itself or a year and month where the day isn't
+          significant.
+        type: integer
+      month:
+        description: |-
+          Month: Month of a year. Must be from 1 to 12, or 0 to specify a year without
+          a month and day.
+        type: integer
+      year:
+        description: |-
+          Year: Year of the date. Must be from 1 to 9999, or 0 to specify a date
+          without a year.
+        type: integer
+    type: object
+  people.DomainMembership:
+    properties:
+      inViewerDomain:
+        description: |-
+          InViewerDomain: True if the person is in the viewer's Google Workspace
+          domain.
+        type: boolean
+    type: object
+  people.EmailAddress:
+    properties:
+      displayName:
+        description: 'DisplayName: The display name of the email.'
+        type: string
+      formattedType:
+        description: |-
+          FormattedType: Output only. The type of the email address translated and
+          formatted in the viewer's account locale or the `Accept-Language` HTTP
+          header locale.
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the email address.'
+      type:
+        description: |-
+          Type: The type of the email address. The type can be custom or one of these
+          predefined values: * `home` * `work` * `other`
+        type: string
+      value:
+        description: 'Value: The email address.'
+        type: string
+    type: object
+  people.Event:
+    properties:
+      date:
+        allOf:
+        - $ref: '#/definitions/people.Date'
+        description: 'Date: The date of the event.'
+      formattedType:
+        description: |-
+          FormattedType: Output only. The type of the event translated and formatted
+          in the viewer's account locale or the `Accept-Language` HTTP header locale.
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the event.'
+      type:
+        description: |-
+          Type: The type of the event. The type can be custom or one of these
+          predefined values: * `anniversary` * `other`
+        type: string
+    type: object
+  people.ExternalId:
+    properties:
+      formattedType:
+        description: |-
+          FormattedType: Output only. The type of the event translated and formatted
+          in the viewer's account locale or the `Accept-Language` HTTP header locale.
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the external ID.'
+      type:
+        description: |-
+          Type: The type of the external ID. The type can be custom or one of these
+          predefined values: * `account` * `customer` * `loginId` * `network` *
+          `organization`
+        type: string
+      value:
+        description: 'Value: The value of the external ID.'
+        type: string
+    type: object
+  people.FieldMetadata:
+    properties:
+      primary:
+        description: |-
+          Primary: Output only. True if the field is the primary field for all sources
+          in the person. Each person will have at most one field with `primary` set to
+          true.
+        type: boolean
+      source:
+        allOf:
+        - $ref: '#/definitions/people.Source'
+        description: 'Source: The source of the field.'
+      sourcePrimary:
+        description: |-
+          SourcePrimary: True if the field is the primary field for the source. Each
+          source must have at most one field with `source_primary` set to true.
+        type: boolean
+      verified:
+        description: |-
+          Verified: Output only. True if the field is verified; false if the field is
+          unverified. A verified field is typically a name, email address, phone
+          number, or website that has been confirmed to be owned by the person.
+        type: boolean
+    type: object
+  people.FileAs:
+    properties:
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the file-as.'
+      value:
+        description: 'Value: The file-as value'
+        type: string
+    type: object
+  people.Gender:
+    properties:
+      addressMeAs:
+        description: |-
+          AddressMeAs: Free form text field for pronouns that should be used to
+          address the person. Common values are: * `he`/`him` * `she`/`her` *
+          `they`/`them`
+        type: string
+      formattedValue:
+        description: |-
+          FormattedValue: Output only. The value of the gender translated and
+          formatted in the viewer's account locale or the `Accept-Language` HTTP
+          header locale. Unspecified or custom value are not localized.
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the gender.'
+      value:
+        description: |-
+          Value: The gender for the person. The gender can be custom or one of these
+          predefined values: * `male` * `female` * `unspecified`
+        type: string
+    type: object
+  people.ImClient:
+    properties:
+      formattedProtocol:
+        description: |-
+          FormattedProtocol: Output only. The protocol of the IM client formatted in
+          the viewer's account locale or the `Accept-Language` HTTP header locale.
+        type: string
+      formattedType:
+        description: |-
+          FormattedType: Output only. The type of the IM client translated and
+          formatted in the viewer's account locale or the `Accept-Language` HTTP
+          header locale.
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the IM client.'
+      protocol:
+        description: |-
+          Protocol: The protocol of the IM client. The protocol can be custom or one
+          of these predefined values: * `aim` * `msn` * `yahoo` * `skype` * `qq` *
+          `googleTalk` * `icq` * `jabber` * `netMeeting`
+        type: string
+      type:
+        description: |-
+          Type: The type of the IM client. The type can be custom or one of these
+          predefined values: * `home` * `work` * `other`
+        type: string
+      username:
+        description: 'Username: The user name used in the IM client.'
+        type: string
+    type: object
+  people.Interest:
+    properties:
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the interest.'
+      value:
+        description: 'Value: The interest; for example, `stargazing`.'
+        type: string
+    type: object
+  people.Locale:
+    properties:
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the locale.'
+      value:
+        description: |-
+          Value: The well-formed IETF BCP 47 (https://tools.ietf.org/html/bcp47)
+          language tag representing the locale.
+        type: string
+    type: object
+  people.Location:
+    properties:
+      buildingId:
+        description: 'BuildingId: The building identifier.'
+        type: string
+      current:
+        description: 'Current: Whether the location is the current location.'
+        type: boolean
+      deskCode:
+        description: 'DeskCode: The individual desk location.'
+        type: string
+      floor:
+        description: 'Floor: The floor name or number.'
+        type: string
+      floorSection:
+        description: 'FloorSection: The floor section in `floor_name`.'
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the location.'
+      type:
+        description: |-
+          Type: The type of the location. The type can be custom or one of these
+          predefined values: * `desk` * `grewUp`
+        type: string
+      value:
+        description: 'Value: The free-form value of the location.'
+        type: string
+    type: object
+  people.Membership:
+    properties:
+      contactGroupMembership:
+        allOf:
+        - $ref: '#/definitions/people.ContactGroupMembership'
+        description: 'ContactGroupMembership: The contact group membership.'
+      domainMembership:
+        allOf:
+        - $ref: '#/definitions/people.DomainMembership'
+        description: 'DomainMembership: Output only. The domain membership.'
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the membership.'
+    type: object
+  people.MiscKeyword:
+    properties:
+      formattedType:
+        description: |-
+          FormattedType: Output only. The type of the miscellaneous keyword translated
+          and formatted in the viewer's account locale or the `Accept-Language` HTTP
+          header locale.
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the miscellaneous keyword.'
+      type:
+        description: |-
+          Type: The miscellaneous keyword type.
+
+          Possible values:
+            "TYPE_UNSPECIFIED" - Unspecified.
+            "OUTLOOK_BILLING_INFORMATION" - Outlook field for billing information.
+            "OUTLOOK_DIRECTORY_SERVER" - Outlook field for directory server.
+            "OUTLOOK_KEYWORD" - Outlook field for keyword.
+            "OUTLOOK_MILEAGE" - Outlook field for mileage.
+            "OUTLOOK_PRIORITY" - Outlook field for priority.
+            "OUTLOOK_SENSITIVITY" - Outlook field for sensitivity.
+            "OUTLOOK_SUBJECT" - Outlook field for subject.
+            "OUTLOOK_USER" - Outlook field for user.
+            "HOME" - Home.
+            "WORK" - Work.
+            "OTHER" - Other.
+        type: string
+      value:
+        description: 'Value: The value of the miscellaneous keyword.'
+        type: string
+    type: object
+  people.Name:
+    properties:
+      displayName:
+        description: |-
+          DisplayName: Output only. The display name formatted according to the locale
+          specified by the viewer's account or the `Accept-Language` HTTP header.
+        type: string
+      displayNameLastFirst:
+        description: |-
+          DisplayNameLastFirst: Output only. The display name with the last name first
+          formatted according to the locale specified by the viewer's account or the
+          `Accept-Language` HTTP header.
+        type: string
+      familyName:
+        description: 'FamilyName: The family name.'
+        type: string
+      givenName:
+        description: 'GivenName: The given name.'
+        type: string
+      honorificPrefix:
+        description: 'HonorificPrefix: The honorific prefixes, such as `Mrs.` or `Dr.`'
+        type: string
+      honorificSuffix:
+        description: 'HonorificSuffix: The honorific suffixes, such as `Jr.`'
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the name.'
+      middleName:
+        description: 'MiddleName: The middle name(s).'
+        type: string
+      phoneticFamilyName:
+        description: 'PhoneticFamilyName: The family name spelled as it sounds.'
+        type: string
+      phoneticFullName:
+        description: 'PhoneticFullName: The full name spelled as it sounds.'
+        type: string
+      phoneticGivenName:
+        description: 'PhoneticGivenName: The given name spelled as it sounds.'
+        type: string
+      phoneticHonorificPrefix:
+        description: 'PhoneticHonorificPrefix: The honorific prefixes spelled as they
+          sound.'
+        type: string
+      phoneticHonorificSuffix:
+        description: 'PhoneticHonorificSuffix: The honorific suffixes spelled as they
+          sound.'
+        type: string
+      phoneticMiddleName:
+        description: 'PhoneticMiddleName: The middle name(s) spelled as they sound.'
+        type: string
+      unstructuredName:
+        description: 'UnstructuredName: The free form name value.'
+        type: string
+    type: object
+  people.Nickname:
+    properties:
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the nickname.'
+      type:
+        description: |-
+          Type: The type of the nickname.
+
+          Possible values:
+            "DEFAULT" - Generic nickname.
+            "MAIDEN_NAME" - Maiden name or birth family name. Used when the person's
+          family name has changed as a result of marriage.
+            "INITIALS" - Initials.
+            "GPLUS" - Google+ profile nickname.
+            "OTHER_NAME" - A professional affiliation or other name; for example, `Dr.
+          Smith.`
+            "ALTERNATE_NAME" - Alternate name person is known by.
+            "SHORT_NAME" - A shorter version of the person's name.
+        type: string
+      value:
+        description: 'Value: The nickname.'
+        type: string
+    type: object
+  people.Occupation:
+    properties:
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the occupation.'
+      value:
+        description: 'Value: The occupation; for example, `carpenter`.'
+        type: string
+    type: object
+  people.Organization:
+    properties:
+      costCenter:
+        description: 'CostCenter: The person''s cost center at the organization.'
+        type: string
+      current:
+        description: |-
+          Current: True if the organization is the person's current organization;
+          false if the organization is a past organization.
+        type: boolean
+      department:
+        description: 'Department: The person''s department at the organization.'
+        type: string
+      domain:
+        description: |-
+          Domain: The domain name associated with the organization; for example,
+          `google.com`.
+        type: string
+      endDate:
+        allOf:
+        - $ref: '#/definitions/people.Date'
+        description: 'EndDate: The end date when the person left the organization.'
+      formattedType:
+        description: |-
+          FormattedType: Output only. The type of the organization translated and
+          formatted in the viewer's account locale or the `Accept-Language` HTTP
+          header locale.
+        type: string
+      fullTimeEquivalentMillipercent:
+        description: |-
+          FullTimeEquivalentMillipercent: The person's full-time equivalent
+          millipercent within the organization (100000 = 100%).
+        type: integer
+      jobDescription:
+        description: 'JobDescription: The person''s job description at the organization.'
+        type: string
+      location:
+        description: 'Location: The location of the organization office the person
+          works at.'
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the organization.'
+      name:
+        description: 'Name: The name of the organization.'
+        type: string
+      phoneticName:
+        description: 'PhoneticName: The phonetic name of the organization.'
+        type: string
+      startDate:
+        allOf:
+        - $ref: '#/definitions/people.Date'
+        description: 'StartDate: The start date when the person joined the organization.'
+      symbol:
+        description: |-
+          Symbol: The symbol associated with the organization; for example, a stock
+          ticker symbol, abbreviation, or acronym.
+        type: string
+      title:
+        description: 'Title: The person''s job title at the organization.'
+        type: string
+      type:
+        description: |-
+          Type: The type of the organization. The type can be custom or one of these
+          predefined values: * `work` * `school`
+        type: string
+    type: object
+  people.Person:
+    properties:
+      addresses:
+        description: 'Addresses: The person''s street addresses.'
+        items:
+          $ref: '#/definitions/people.Address'
+        type: array
+      ageRange:
+        description: |-
+          AgeRange: Output only. **DEPRECATED** (Please use `person.ageRanges`
+          instead) The person's age range.
+
+          Possible values:
+            "AGE_RANGE_UNSPECIFIED" - Unspecified.
+            "LESS_THAN_EIGHTEEN" - Younger than eighteen.
+            "EIGHTEEN_TO_TWENTY" - Between eighteen and twenty.
+            "TWENTY_ONE_OR_OLDER" - Twenty-one and older.
+        type: string
+      ageRanges:
+        description: 'AgeRanges: Output only. The person''s age ranges.'
+        items:
+          $ref: '#/definitions/people.AgeRangeType'
+        type: array
+      biographies:
+        description: |-
+          Biographies: The person's biographies. This field is a singleton for contact
+          sources.
+        items:
+          $ref: '#/definitions/people.Biography'
+        type: array
+      birthdays:
+        description: |-
+          Birthdays: The person's birthdays. This field is a singleton for contact
+          sources.
+        items:
+          $ref: '#/definitions/people.Birthday'
+        type: array
+      braggingRights:
+        description: |-
+          BraggingRights: **DEPRECATED**: No data will be returned The person's
+          bragging rights.
+        items:
+          $ref: '#/definitions/people.BraggingRights'
+        type: array
+      calendarUrls:
+        description: 'CalendarUrls: The person''s calendar URLs.'
+        items:
+          $ref: '#/definitions/people.CalendarUrl'
+        type: array
+      clientData:
+        description: 'ClientData: The person''s client data.'
+        items:
+          $ref: '#/definitions/people.ClientData'
+        type: array
+      coverPhotos:
+        description: 'CoverPhotos: Output only. The person''s cover photos.'
+        items:
+          $ref: '#/definitions/people.CoverPhoto'
+        type: array
+      emailAddresses:
+        description: |-
+          EmailAddresses: The person's email addresses. For `people.connections.list`
+          and `otherContacts.list` the number of email addresses is limited to 100. If
+          a Person has more email addresses the entire set can be obtained by calling
+          GetPeople.
+        items:
+          $ref: '#/definitions/people.EmailAddress'
+        type: array
+      etag:
+        description: |-
+          Etag: The HTTP entity tag (https://en.wikipedia.org/wiki/HTTP_ETag) of the
+          resource. Used for web cache validation.
+        type: string
+      events:
+        description: 'Events: The person''s events.'
+        items:
+          $ref: '#/definitions/people.Event'
+        type: array
+      externalIds:
+        description: 'ExternalIds: The person''s external IDs.'
+        items:
+          $ref: '#/definitions/people.ExternalId'
+        type: array
+      fileAses:
+        description: 'FileAses: The person''s file-ases.'
+        items:
+          $ref: '#/definitions/people.FileAs'
+        type: array
+      genders:
+        description: |-
+          Genders: The person's genders. This field is a singleton for contact
+          sources.
+        items:
+          $ref: '#/definitions/people.Gender'
+        type: array
+      imClients:
+        description: 'ImClients: The person''s instant messaging clients.'
+        items:
+          $ref: '#/definitions/people.ImClient'
+        type: array
+      interests:
+        description: 'Interests: The person''s interests.'
+        items:
+          $ref: '#/definitions/people.Interest'
+        type: array
+      locales:
+        description: 'Locales: The person''s locale preferences.'
+        items:
+          $ref: '#/definitions/people.Locale'
+        type: array
+      locations:
+        description: 'Locations: The person''s locations.'
+        items:
+          $ref: '#/definitions/people.Location'
+        type: array
+      memberships:
+        description: 'Memberships: The person''s group memberships.'
+        items:
+          $ref: '#/definitions/people.Membership'
+        type: array
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.PersonMetadata'
+        description: 'Metadata: Output only. Metadata about the person.'
+      miscKeywords:
+        description: 'MiscKeywords: The person''s miscellaneous keywords.'
+        items:
+          $ref: '#/definitions/people.MiscKeyword'
+        type: array
+      names:
+        description: 'Names: The person''s names. This field is a singleton for contact
+          sources.'
+        items:
+          $ref: '#/definitions/people.Name'
+        type: array
+      nicknames:
+        description: 'Nicknames: The person''s nicknames.'
+        items:
+          $ref: '#/definitions/people.Nickname'
+        type: array
+      occupations:
+        description: 'Occupations: The person''s occupations.'
+        items:
+          $ref: '#/definitions/people.Occupation'
+        type: array
+      organizations:
+        description: 'Organizations: The person''s past or current organizations.'
+        items:
+          $ref: '#/definitions/people.Organization'
+        type: array
+      phoneNumbers:
+        description: |-
+          PhoneNumbers: The person's phone numbers. For `people.connections.list` and
+          `otherContacts.list` the number of phone numbers is limited to 100. If a
+          Person has more phone numbers the entire set can be obtained by calling
+          GetPeople.
+        items:
+          $ref: '#/definitions/people.PhoneNumber'
+        type: array
+      photos:
+        description: 'Photos: Output only. The person''s photos.'
+        items:
+          $ref: '#/definitions/people.Photo'
+        type: array
+      relations:
+        description: 'Relations: The person''s relations.'
+        items:
+          $ref: '#/definitions/people.Relation'
+        type: array
+      relationshipInterests:
+        description: |-
+          RelationshipInterests: Output only. **DEPRECATED**: No data will be returned
+          The person's relationship interests.
+        items:
+          $ref: '#/definitions/people.RelationshipInterest'
+        type: array
+      relationshipStatuses:
+        description: |-
+          RelationshipStatuses: Output only. **DEPRECATED**: No data will be returned
+          The person's relationship statuses.
+        items:
+          $ref: '#/definitions/people.RelationshipStatus'
+        type: array
+      residences:
+        description: |-
+          Residences: **DEPRECATED**: (Please use `person.locations` instead) The
+          person's residences.
+        items:
+          $ref: '#/definitions/people.Residence'
+        type: array
+      resourceName:
+        description: |-
+          ResourceName: The resource name for the person, assigned by the server. An
+          ASCII string in the form of `people/{person_id}`.
+        type: string
+      sipAddresses:
+        description: 'SipAddresses: The person''s SIP addresses.'
+        items:
+          $ref: '#/definitions/people.SipAddress'
+        type: array
+      skills:
+        description: 'Skills: The person''s skills.'
+        items:
+          $ref: '#/definitions/people.Skill'
+        type: array
+      taglines:
+        description: |-
+          Taglines: Output only. **DEPRECATED**: No data will be returned The person's
+          taglines.
+        items:
+          $ref: '#/definitions/people.Tagline'
+        type: array
+      urls:
+        description: 'Urls: The person''s associated URLs.'
+        items:
+          $ref: '#/definitions/people.Url'
+        type: array
+      userDefined:
+        description: 'UserDefined: The person''s user defined data.'
+        items:
+          $ref: '#/definitions/people.UserDefined'
+        type: array
+    type: object
+  people.PersonMetadata:
+    properties:
+      deleted:
+        description: |-
+          Deleted: Output only. True if the person resource has been deleted.
+          Populated only for `people.connections.list` and `otherContacts.list` sync
+          requests.
+        type: boolean
+      linkedPeopleResourceNames:
+        description: |-
+          LinkedPeopleResourceNames: Output only. Resource names of people linked to
+          this resource.
+        items:
+          type: string
+        type: array
+      objectType:
+        description: |-
+          ObjectType: Output only. **DEPRECATED** (Please use
+          `person.metadata.sources.profileMetadata.objectType` instead) The type of
+          the person object.
+
+          Possible values:
+            "OBJECT_TYPE_UNSPECIFIED" - Unspecified.
+            "PERSON" - Person.
+            "PAGE" - [Currents Page.](https://workspace.google.com/products/currents/)
+        type: string
+      previousResourceNames:
+        description: |-
+          PreviousResourceNames: Output only. Any former resource names this person
+          has had. Populated only for `people.connections.list` requests that include
+          a sync token. The resource name may change when adding or removing fields
+          that link a contact and profile such as a verified email, verified phone
+          number, or profile URL.
+        items:
+          type: string
+        type: array
+      sources:
+        description: 'Sources: The sources of data for the person.'
+        items:
+          $ref: '#/definitions/people.Source'
+        type: array
+    type: object
+  people.PhoneNumber:
+    properties:
+      canonicalForm:
+        description: |-
+          CanonicalForm: Output only. The canonicalized ITU-T E.164
+          (https://law.resource.org/pub/us/cfr/ibr/004/itu-t.E.164.1.2008.pdf) form of
+          the phone number.
+        type: string
+      formattedType:
+        description: |-
+          FormattedType: Output only. The type of the phone number translated and
+          formatted in the viewer's account locale or the `Accept-Language` HTTP
+          header locale.
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the phone number.'
+      type:
+        description: |-
+          Type: The type of the phone number. The type can be custom or one of these
+          predefined values: * `home` * `work` * `mobile` * `homeFax` * `workFax` *
+          `otherFax` * `pager` * `workMobile` * `workPager` * `main` * `googleVoice` *
+          `other`
+        type: string
+      value:
+        description: 'Value: The phone number.'
+        type: string
+    type: object
+  people.Photo:
+    properties:
+      default:
+        description: |-
+          Default: True if the photo is a default photo; false if the photo is a
+          user-provided photo.
+        type: boolean
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the photo.'
+      url:
+        description: |-
+          Url: The URL of the photo. You can change the desired size by appending a
+          query parameter `sz={size}` at the end of the url, where {size} is the size
+          in pixels. Example:
+          https://lh3.googleusercontent.com/-T_wVWLlmg7w/AAAAAAAAAAI/AAAAAAAABa8/00gzXvDBYqw/s100/photo.jpg?sz=50
+        type: string
+    type: object
+  people.ProfileMetadata:
+    properties:
+      objectType:
+        description: |-
+          ObjectType: Output only. The profile object type.
+
+          Possible values:
+            "OBJECT_TYPE_UNSPECIFIED" - Unspecified.
+            "PERSON" - Person.
+            "PAGE" - [Currents Page.](https://workspace.google.com/products/currents/)
+        type: string
+      userTypes:
+        description: |-
+          UserTypes: Output only. The user types.
+
+          Possible values:
+            "USER_TYPE_UNKNOWN" - The user type is not known.
+            "GOOGLE_USER" - The user is a Google user.
+            "GPLUS_USER" - The user is a Currents user.
+            "GOOGLE_APPS_USER" - The user is a Google Workspace user.
+        items:
+          type: string
+        type: array
+    type: object
+  people.PullPeopleResponse:
+    properties:
+      checkpoint:
+        $ref: '#/definitions/people.SyncCheckpoint'
+      people:
+        items:
+          $ref: '#/definitions/GooglePerson'
+        type: array
+    type: object
+  people.Relation:
+    properties:
+      formattedType:
+        description: |-
+          FormattedType: Output only. The type of the relation translated and
+          formatted in the viewer's account locale or the locale specified in the
+          Accept-Language HTTP header.
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the relation.'
+      person:
+        description: 'Person: The name of the other person this relation refers to.'
+        type: string
+      type:
+        description: |-
+          Type: The person's relation to the other person. The type can be custom or
+          one of these predefined values: * `spouse` * `child` * `mother` * `father` *
+          `parent` * `brother` * `sister` * `friend` * `relative` * `domesticPartner`
+          * `manager` * `assistant` * `referredBy` * `partner`
+        type: string
+    type: object
+  people.RelationshipInterest:
+    properties:
+      formattedValue:
+        description: |-
+          FormattedValue: Output only. The value of the relationship interest
+          translated and formatted in the viewer's account locale or the locale
+          specified in the Accept-Language HTTP header.
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the relationship interest.'
+      value:
+        description: |-
+          Value: The kind of relationship the person is looking for. The value can be
+          custom or one of these predefined values: * `friend` * `date` *
+          `relationship` * `networking`
+        type: string
+    type: object
+  people.RelationshipStatus:
+    properties:
+      formattedValue:
+        description: |-
+          FormattedValue: Output only. The value of the relationship status translated
+          and formatted in the viewer's account locale or the `Accept-Language` HTTP
+          header locale.
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the relationship status.'
+      value:
+        description: |-
+          Value: The relationship status. The value can be custom or one of these
+          predefined values: * `single` * `inARelationship` * `engaged` * `married` *
+          `itsComplicated` * `openRelationship` * `widowed` * `inDomesticPartnership`
+          * `inCivilUnion`
+        type: string
+    type: object
+  people.Residence:
+    properties:
+      current:
+        description: |-
+          Current: True if the residence is the person's current residence; false if
+          the residence is a past residence.
+        type: boolean
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the residence.'
+      value:
+        description: 'Value: The address of the residence.'
+        type: string
+    type: object
+  people.SipAddress:
+    properties:
+      formattedType:
+        description: |-
+          FormattedType: Output only. The type of the SIP address translated and
+          formatted in the viewer's account locale or the `Accept-Language` HTTP
+          header locale.
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the SIP address.'
+      type:
+        description: |-
+          Type: The type of the SIP address. The type can be custom or or one of these
+          predefined values: * `home` * `work` * `mobile` * `other`
+        type: string
+      value:
+        description: |-
+          Value: The SIP address in the RFC 3261 19.1
+          (https://tools.ietf.org/html/rfc3261#section-19.1) SIP URI format.
+        type: string
+    type: object
+  people.Skill:
+    properties:
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the skill.'
+      value:
+        description: 'Value: The skill; for example, `underwater basket weaving`.'
+        type: string
+    type: object
+  people.Source:
+    properties:
+      etag:
+        description: |-
+          Etag: **Only populated in `person.metadata.sources`.** The HTTP entity tag
+          (https://en.wikipedia.org/wiki/HTTP_ETag) of the source. Used for web cache
+          validation.
+        type: string
+      id:
+        description: 'Id: The unique identifier within the source type generated by
+          the server.'
+        type: string
+      profileMetadata:
+        allOf:
+        - $ref: '#/definitions/people.ProfileMetadata'
+        description: |-
+          ProfileMetadata: Output only. **Only populated in
+          `person.metadata.sources`.** Metadata about a source of type PROFILE.
+      type:
+        description: |-
+          Type: The source type.
+
+          Possible values:
+            "SOURCE_TYPE_UNSPECIFIED" - Unspecified.
+            "ACCOUNT" - [Google Account](https://accounts.google.com).
+            "PROFILE" - [Google profile](https://profiles.google.com). You can view
+          the profile at
+          [https://profiles.google.com/](https://profiles.google.com/){id}, where {id}
+          is the source id.
+            "DOMAIN_PROFILE" - [Google Workspace domain
+          profile](https://support.google.com/a/answer/1628008).
+            "CONTACT" - [Google contact](https://contacts.google.com). You can view
+          the contact at
+          [https://contact.google.com/](https://contact.google.com/){id}, where {id}
+          is the source id.
+            "OTHER_CONTACT" - [Google "Other
+          contact"](https://contacts.google.com/other).
+            "DOMAIN_CONTACT" - [Google Workspace domain shared
+          contact](https://support.google.com/a/answer/9281635).
+        type: string
+      updateTime:
+        description: |-
+          UpdateTime: Output only. **Only populated in `person.metadata.sources`.**
+          Last update timestamp of this source.
+        type: string
+    type: object
+  people.SyncCheckpoint:
+    properties:
+      personId:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  people.Tagline:
+    properties:
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the tagline.'
+      value:
+        description: 'Value: The tagline.'
+        type: string
+    type: object
+  people.Url:
+    properties:
+      formattedType:
+        description: |-
+          FormattedType: Output only. The type of the URL translated and formatted in
+          the viewer's account locale or the `Accept-Language` HTTP header locale.
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the URL.'
+      type:
+        description: |-
+          Type: The type of the URL. The type can be custom or one of these predefined
+          values: * `home` * `work` * `blog` * `profile` * `homePage` * `ftp` *
+          `reservations` * `appInstallPage`: website for a Currents application. *
+          `other`
+        type: string
+      value:
+        description: 'Value: The URL.'
+        type: string
+    type: object
+  people.UserDefined:
+    properties:
+      key:
+        description: 'Key: The end user specified key of the user defined data.'
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/people.FieldMetadata'
+        description: 'Metadata: Metadata about the user defined data.'
+      value:
+        description: 'Value: The end user specified value of the user defined data.'
+        type: string
     type: object
 host: localhost:5173
 info:
@@ -167,4 +1364,17 @@ paths:
       summary: List all messages in a thread
       tags:
       - email
+  /people/pull:
+    get:
+      description: Pulls the people database to be local
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/people.PullPeopleResponse'
+      summary: Pull the people database
+      tags:
+      - people
 swagger: "2.0"

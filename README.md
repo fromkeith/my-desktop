@@ -51,7 +51,7 @@ Some people have good experiences with MSYS2: https://www.msys2.org/. After inst
 
 ```
 go install github.com/swaggo/swag/cmd/swag@latest
-swag init
+swag init --parseVendor --parseDependency
 ```
 
 client side

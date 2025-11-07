@@ -92,6 +92,26 @@
                     }
                 }
             }
+        },
+        "/people/pull": {
+            "get": {
+                "description": "Pulls the people database to be local",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "Pull the people database",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/people.PullPeopleResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -229,6 +249,34 @@
                 }
             }
         },
+        "GooglePerson": {
+            "type": "object",
+            "required": [
+                "createdAt",
+                "person",
+                "personId",
+                "revisionCount",
+                "updatedAt"
+            ],
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "person": {
+                    "$ref": "#/definitions/people.Person"
+                },
+                "personId": {
+                    "type": "string"
+                },
+                "revisionCount": {
+                    "type": "integer"
+                },
+                "updatedAt": {
+                    "description": "For Sync + Conflict Resolution",
+                    "type": "string"
+                }
+            }
+        },
         "PersonInfo": {
             "type": "object",
             "required": [
@@ -240,6 +288,1359 @@
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "people.Address": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "description": "City: The city of the address.",
+                    "type": "string"
+                },
+                "country": {
+                    "description": "Country: The country of the address.",
+                    "type": "string"
+                },
+                "countryCode": {
+                    "description": "CountryCode: The ISO 3166-1 alpha-2\n(http://www.iso.org/iso/country_codes.htm) country code of the address.",
+                    "type": "string"
+                },
+                "extendedAddress": {
+                    "description": "ExtendedAddress: The extended address of the address; for example, the\napartment number.",
+                    "type": "string"
+                },
+                "formattedType": {
+                    "description": "FormattedType: Output only. The type of the address translated and formatted\nin the viewer's account locale or the `Accept-Language` HTTP header locale.",
+                    "type": "string"
+                },
+                "formattedValue": {
+                    "description": "FormattedValue: The unstructured value of the address. If this is not set by\nthe user it will be automatically constructed from structured values.",
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the address.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "poBox": {
+                    "description": "PoBox: The P.O. box of the address.",
+                    "type": "string"
+                },
+                "postalCode": {
+                    "description": "PostalCode: The postal code of the address.",
+                    "type": "string"
+                },
+                "region": {
+                    "description": "Region: The region of the address; for example, the state or province.",
+                    "type": "string"
+                },
+                "streetAddress": {
+                    "description": "StreetAddress: The street address.",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "Type: The type of the address. The type can be custom or one of these\npredefined values: * `home` * `work` * `other`",
+                    "type": "string"
+                }
+            }
+        },
+        "people.AgeRangeType": {
+            "type": "object",
+            "properties": {
+                "ageRange": {
+                    "description": "AgeRange: The age range.\n\nPossible values:\n  \"AGE_RANGE_UNSPECIFIED\" - Unspecified.\n  \"LESS_THAN_EIGHTEEN\" - Younger than eighteen.\n  \"EIGHTEEN_TO_TWENTY\" - Between eighteen and twenty.\n  \"TWENTY_ONE_OR_OLDER\" - Twenty-one and older.",
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the age range.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                }
+            }
+        },
+        "people.Biography": {
+            "type": "object",
+            "properties": {
+                "contentType": {
+                    "description": "ContentType: The content type of the biography.\n\nPossible values:\n  \"CONTENT_TYPE_UNSPECIFIED\" - Unspecified.\n  \"TEXT_PLAIN\" - Plain text.\n  \"TEXT_HTML\" - HTML text.",
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the biography.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "value": {
+                    "description": "Value: The short biography.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.Birthday": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "description": "Date: The structured date of the birthday.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.Date"
+                        }
+                    ]
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the birthday.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "text": {
+                    "description": "Text: Prefer to use the `date` field if set. A free-form string representing\nthe user's birthday. This value is not validated.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.BraggingRights": {
+            "type": "object",
+            "properties": {
+                "metadata": {
+                    "description": "Metadata: Metadata about the bragging rights.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "value": {
+                    "description": "Value: The bragging rights; for example, `climbed mount everest`.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.CalendarUrl": {
+            "type": "object",
+            "properties": {
+                "formattedType": {
+                    "description": "FormattedType: Output only. The type of the calendar URL translated and\nformatted in the viewer's account locale or the `Accept-Language` HTTP\nheader locale.",
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the calendar URL.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "type": {
+                    "description": "Type: The type of the calendar URL. The type can be custom or one of these\npredefined values: * `home` * `freeBusy` * `work`",
+                    "type": "string"
+                },
+                "url": {
+                    "description": "Url: The calendar URL.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.ClientData": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "description": "Key: The client specified key of the client data.",
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the client data.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "value": {
+                    "description": "Value: The client specified value of the client data.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.ContactGroupMembership": {
+            "type": "object",
+            "properties": {
+                "contactGroupId": {
+                    "description": "ContactGroupId: Output only. The contact group ID for the contact group\nmembership.",
+                    "type": "string"
+                },
+                "contactGroupResourceName": {
+                    "description": "ContactGroupResourceName: The resource name for the contact group, assigned\nby the server. An ASCII string, in the form of\n`contactGroups/{contact_group_id}`. Only contact_group_resource_name can be\nused for modifying memberships. Any contact group membership can be removed,\nbut only user group or \"myContacts\" or \"starred\" system groups memberships\ncan be added. A contact must always have at least one contact group\nmembership.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.CoverPhoto": {
+            "type": "object",
+            "properties": {
+                "default": {
+                    "description": "Default: True if the cover photo is the default cover photo; false if the\ncover photo is a user-provided cover photo.",
+                    "type": "boolean"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the cover photo.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "url": {
+                    "description": "Url: The URL of the cover photo.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.Date": {
+            "type": "object",
+            "properties": {
+                "day": {
+                    "description": "Day: Day of a month. Must be from 1 to 31 and valid for the year and month,\nor 0 to specify a year by itself or a year and month where the day isn't\nsignificant.",
+                    "type": "integer"
+                },
+                "month": {
+                    "description": "Month: Month of a year. Must be from 1 to 12, or 0 to specify a year without\na month and day.",
+                    "type": "integer"
+                },
+                "year": {
+                    "description": "Year: Year of the date. Must be from 1 to 9999, or 0 to specify a date\nwithout a year.",
+                    "type": "integer"
+                }
+            }
+        },
+        "people.DomainMembership": {
+            "type": "object",
+            "properties": {
+                "inViewerDomain": {
+                    "description": "InViewerDomain: True if the person is in the viewer's Google Workspace\ndomain.",
+                    "type": "boolean"
+                }
+            }
+        },
+        "people.EmailAddress": {
+            "type": "object",
+            "properties": {
+                "displayName": {
+                    "description": "DisplayName: The display name of the email.",
+                    "type": "string"
+                },
+                "formattedType": {
+                    "description": "FormattedType: Output only. The type of the email address translated and\nformatted in the viewer's account locale or the `Accept-Language` HTTP\nheader locale.",
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the email address.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "type": {
+                    "description": "Type: The type of the email address. The type can be custom or one of these\npredefined values: * `home` * `work` * `other`",
+                    "type": "string"
+                },
+                "value": {
+                    "description": "Value: The email address.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.Event": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "description": "Date: The date of the event.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.Date"
+                        }
+                    ]
+                },
+                "formattedType": {
+                    "description": "FormattedType: Output only. The type of the event translated and formatted\nin the viewer's account locale or the `Accept-Language` HTTP header locale.",
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the event.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "type": {
+                    "description": "Type: The type of the event. The type can be custom or one of these\npredefined values: * `anniversary` * `other`",
+                    "type": "string"
+                }
+            }
+        },
+        "people.ExternalId": {
+            "type": "object",
+            "properties": {
+                "formattedType": {
+                    "description": "FormattedType: Output only. The type of the event translated and formatted\nin the viewer's account locale or the `Accept-Language` HTTP header locale.",
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the external ID.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "type": {
+                    "description": "Type: The type of the external ID. The type can be custom or one of these\npredefined values: * `account` * `customer` * `loginId` * `network` *\n`organization`",
+                    "type": "string"
+                },
+                "value": {
+                    "description": "Value: The value of the external ID.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.FieldMetadata": {
+            "type": "object",
+            "properties": {
+                "primary": {
+                    "description": "Primary: Output only. True if the field is the primary field for all sources\nin the person. Each person will have at most one field with `primary` set to\ntrue.",
+                    "type": "boolean"
+                },
+                "source": {
+                    "description": "Source: The source of the field.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.Source"
+                        }
+                    ]
+                },
+                "sourcePrimary": {
+                    "description": "SourcePrimary: True if the field is the primary field for the source. Each\nsource must have at most one field with `source_primary` set to true.",
+                    "type": "boolean"
+                },
+                "verified": {
+                    "description": "Verified: Output only. True if the field is verified; false if the field is\nunverified. A verified field is typically a name, email address, phone\nnumber, or website that has been confirmed to be owned by the person.",
+                    "type": "boolean"
+                }
+            }
+        },
+        "people.FileAs": {
+            "type": "object",
+            "properties": {
+                "metadata": {
+                    "description": "Metadata: Metadata about the file-as.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "value": {
+                    "description": "Value: The file-as value",
+                    "type": "string"
+                }
+            }
+        },
+        "people.Gender": {
+            "type": "object",
+            "properties": {
+                "addressMeAs": {
+                    "description": "AddressMeAs: Free form text field for pronouns that should be used to\naddress the person. Common values are: * `he`/`him` * `she`/`her` *\n`they`/`them`",
+                    "type": "string"
+                },
+                "formattedValue": {
+                    "description": "FormattedValue: Output only. The value of the gender translated and\nformatted in the viewer's account locale or the `Accept-Language` HTTP\nheader locale. Unspecified or custom value are not localized.",
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the gender.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "value": {
+                    "description": "Value: The gender for the person. The gender can be custom or one of these\npredefined values: * `male` * `female` * `unspecified`",
+                    "type": "string"
+                }
+            }
+        },
+        "people.ImClient": {
+            "type": "object",
+            "properties": {
+                "formattedProtocol": {
+                    "description": "FormattedProtocol: Output only. The protocol of the IM client formatted in\nthe viewer's account locale or the `Accept-Language` HTTP header locale.",
+                    "type": "string"
+                },
+                "formattedType": {
+                    "description": "FormattedType: Output only. The type of the IM client translated and\nformatted in the viewer's account locale or the `Accept-Language` HTTP\nheader locale.",
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the IM client.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "protocol": {
+                    "description": "Protocol: The protocol of the IM client. The protocol can be custom or one\nof these predefined values: * `aim` * `msn` * `yahoo` * `skype` * `qq` *\n`googleTalk` * `icq` * `jabber` * `netMeeting`",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "Type: The type of the IM client. The type can be custom or one of these\npredefined values: * `home` * `work` * `other`",
+                    "type": "string"
+                },
+                "username": {
+                    "description": "Username: The user name used in the IM client.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.Interest": {
+            "type": "object",
+            "properties": {
+                "metadata": {
+                    "description": "Metadata: Metadata about the interest.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "value": {
+                    "description": "Value: The interest; for example, `stargazing`.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.Locale": {
+            "type": "object",
+            "properties": {
+                "metadata": {
+                    "description": "Metadata: Metadata about the locale.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "value": {
+                    "description": "Value: The well-formed IETF BCP 47 (https://tools.ietf.org/html/bcp47)\nlanguage tag representing the locale.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.Location": {
+            "type": "object",
+            "properties": {
+                "buildingId": {
+                    "description": "BuildingId: The building identifier.",
+                    "type": "string"
+                },
+                "current": {
+                    "description": "Current: Whether the location is the current location.",
+                    "type": "boolean"
+                },
+                "deskCode": {
+                    "description": "DeskCode: The individual desk location.",
+                    "type": "string"
+                },
+                "floor": {
+                    "description": "Floor: The floor name or number.",
+                    "type": "string"
+                },
+                "floorSection": {
+                    "description": "FloorSection: The floor section in `floor_name`.",
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the location.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "type": {
+                    "description": "Type: The type of the location. The type can be custom or one of these\npredefined values: * `desk` * `grewUp`",
+                    "type": "string"
+                },
+                "value": {
+                    "description": "Value: The free-form value of the location.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.Membership": {
+            "type": "object",
+            "properties": {
+                "contactGroupMembership": {
+                    "description": "ContactGroupMembership: The contact group membership.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.ContactGroupMembership"
+                        }
+                    ]
+                },
+                "domainMembership": {
+                    "description": "DomainMembership: Output only. The domain membership.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.DomainMembership"
+                        }
+                    ]
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the membership.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                }
+            }
+        },
+        "people.MiscKeyword": {
+            "type": "object",
+            "properties": {
+                "formattedType": {
+                    "description": "FormattedType: Output only. The type of the miscellaneous keyword translated\nand formatted in the viewer's account locale or the `Accept-Language` HTTP\nheader locale.",
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the miscellaneous keyword.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "type": {
+                    "description": "Type: The miscellaneous keyword type.\n\nPossible values:\n  \"TYPE_UNSPECIFIED\" - Unspecified.\n  \"OUTLOOK_BILLING_INFORMATION\" - Outlook field for billing information.\n  \"OUTLOOK_DIRECTORY_SERVER\" - Outlook field for directory server.\n  \"OUTLOOK_KEYWORD\" - Outlook field for keyword.\n  \"OUTLOOK_MILEAGE\" - Outlook field for mileage.\n  \"OUTLOOK_PRIORITY\" - Outlook field for priority.\n  \"OUTLOOK_SENSITIVITY\" - Outlook field for sensitivity.\n  \"OUTLOOK_SUBJECT\" - Outlook field for subject.\n  \"OUTLOOK_USER\" - Outlook field for user.\n  \"HOME\" - Home.\n  \"WORK\" - Work.\n  \"OTHER\" - Other.",
+                    "type": "string"
+                },
+                "value": {
+                    "description": "Value: The value of the miscellaneous keyword.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.Name": {
+            "type": "object",
+            "properties": {
+                "displayName": {
+                    "description": "DisplayName: Output only. The display name formatted according to the locale\nspecified by the viewer's account or the `Accept-Language` HTTP header.",
+                    "type": "string"
+                },
+                "displayNameLastFirst": {
+                    "description": "DisplayNameLastFirst: Output only. The display name with the last name first\nformatted according to the locale specified by the viewer's account or the\n`Accept-Language` HTTP header.",
+                    "type": "string"
+                },
+                "familyName": {
+                    "description": "FamilyName: The family name.",
+                    "type": "string"
+                },
+                "givenName": {
+                    "description": "GivenName: The given name.",
+                    "type": "string"
+                },
+                "honorificPrefix": {
+                    "description": "HonorificPrefix: The honorific prefixes, such as `Mrs.` or `Dr.`",
+                    "type": "string"
+                },
+                "honorificSuffix": {
+                    "description": "HonorificSuffix: The honorific suffixes, such as `Jr.`",
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the name.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "middleName": {
+                    "description": "MiddleName: The middle name(s).",
+                    "type": "string"
+                },
+                "phoneticFamilyName": {
+                    "description": "PhoneticFamilyName: The family name spelled as it sounds.",
+                    "type": "string"
+                },
+                "phoneticFullName": {
+                    "description": "PhoneticFullName: The full name spelled as it sounds.",
+                    "type": "string"
+                },
+                "phoneticGivenName": {
+                    "description": "PhoneticGivenName: The given name spelled as it sounds.",
+                    "type": "string"
+                },
+                "phoneticHonorificPrefix": {
+                    "description": "PhoneticHonorificPrefix: The honorific prefixes spelled as they sound.",
+                    "type": "string"
+                },
+                "phoneticHonorificSuffix": {
+                    "description": "PhoneticHonorificSuffix: The honorific suffixes spelled as they sound.",
+                    "type": "string"
+                },
+                "phoneticMiddleName": {
+                    "description": "PhoneticMiddleName: The middle name(s) spelled as they sound.",
+                    "type": "string"
+                },
+                "unstructuredName": {
+                    "description": "UnstructuredName: The free form name value.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.Nickname": {
+            "type": "object",
+            "properties": {
+                "metadata": {
+                    "description": "Metadata: Metadata about the nickname.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "type": {
+                    "description": "Type: The type of the nickname.\n\nPossible values:\n  \"DEFAULT\" - Generic nickname.\n  \"MAIDEN_NAME\" - Maiden name or birth family name. Used when the person's\nfamily name has changed as a result of marriage.\n  \"INITIALS\" - Initials.\n  \"GPLUS\" - Google+ profile nickname.\n  \"OTHER_NAME\" - A professional affiliation or other name; for example, `Dr.\nSmith.`\n  \"ALTERNATE_NAME\" - Alternate name person is known by.\n  \"SHORT_NAME\" - A shorter version of the person's name.",
+                    "type": "string"
+                },
+                "value": {
+                    "description": "Value: The nickname.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.Occupation": {
+            "type": "object",
+            "properties": {
+                "metadata": {
+                    "description": "Metadata: Metadata about the occupation.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "value": {
+                    "description": "Value: The occupation; for example, `carpenter`.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.Organization": {
+            "type": "object",
+            "properties": {
+                "costCenter": {
+                    "description": "CostCenter: The person's cost center at the organization.",
+                    "type": "string"
+                },
+                "current": {
+                    "description": "Current: True if the organization is the person's current organization;\nfalse if the organization is a past organization.",
+                    "type": "boolean"
+                },
+                "department": {
+                    "description": "Department: The person's department at the organization.",
+                    "type": "string"
+                },
+                "domain": {
+                    "description": "Domain: The domain name associated with the organization; for example,\n`google.com`.",
+                    "type": "string"
+                },
+                "endDate": {
+                    "description": "EndDate: The end date when the person left the organization.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.Date"
+                        }
+                    ]
+                },
+                "formattedType": {
+                    "description": "FormattedType: Output only. The type of the organization translated and\nformatted in the viewer's account locale or the `Accept-Language` HTTP\nheader locale.",
+                    "type": "string"
+                },
+                "fullTimeEquivalentMillipercent": {
+                    "description": "FullTimeEquivalentMillipercent: The person's full-time equivalent\nmillipercent within the organization (100000 = 100%).",
+                    "type": "integer"
+                },
+                "jobDescription": {
+                    "description": "JobDescription: The person's job description at the organization.",
+                    "type": "string"
+                },
+                "location": {
+                    "description": "Location: The location of the organization office the person works at.",
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the organization.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "name": {
+                    "description": "Name: The name of the organization.",
+                    "type": "string"
+                },
+                "phoneticName": {
+                    "description": "PhoneticName: The phonetic name of the organization.",
+                    "type": "string"
+                },
+                "startDate": {
+                    "description": "StartDate: The start date when the person joined the organization.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.Date"
+                        }
+                    ]
+                },
+                "symbol": {
+                    "description": "Symbol: The symbol associated with the organization; for example, a stock\nticker symbol, abbreviation, or acronym.",
+                    "type": "string"
+                },
+                "title": {
+                    "description": "Title: The person's job title at the organization.",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "Type: The type of the organization. The type can be custom or one of these\npredefined values: * `work` * `school`",
+                    "type": "string"
+                }
+            }
+        },
+        "people.Person": {
+            "type": "object",
+            "properties": {
+                "addresses": {
+                    "description": "Addresses: The person's street addresses.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.Address"
+                    }
+                },
+                "ageRange": {
+                    "description": "AgeRange: Output only. **DEPRECATED** (Please use `person.ageRanges`\ninstead) The person's age range.\n\nPossible values:\n  \"AGE_RANGE_UNSPECIFIED\" - Unspecified.\n  \"LESS_THAN_EIGHTEEN\" - Younger than eighteen.\n  \"EIGHTEEN_TO_TWENTY\" - Between eighteen and twenty.\n  \"TWENTY_ONE_OR_OLDER\" - Twenty-one and older.",
+                    "type": "string"
+                },
+                "ageRanges": {
+                    "description": "AgeRanges: Output only. The person's age ranges.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.AgeRangeType"
+                    }
+                },
+                "biographies": {
+                    "description": "Biographies: The person's biographies. This field is a singleton for contact\nsources.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.Biography"
+                    }
+                },
+                "birthdays": {
+                    "description": "Birthdays: The person's birthdays. This field is a singleton for contact\nsources.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.Birthday"
+                    }
+                },
+                "braggingRights": {
+                    "description": "BraggingRights: **DEPRECATED**: No data will be returned The person's\nbragging rights.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.BraggingRights"
+                    }
+                },
+                "calendarUrls": {
+                    "description": "CalendarUrls: The person's calendar URLs.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.CalendarUrl"
+                    }
+                },
+                "clientData": {
+                    "description": "ClientData: The person's client data.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.ClientData"
+                    }
+                },
+                "coverPhotos": {
+                    "description": "CoverPhotos: Output only. The person's cover photos.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.CoverPhoto"
+                    }
+                },
+                "emailAddresses": {
+                    "description": "EmailAddresses: The person's email addresses. For `people.connections.list`\nand `otherContacts.list` the number of email addresses is limited to 100. If\na Person has more email addresses the entire set can be obtained by calling\nGetPeople.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.EmailAddress"
+                    }
+                },
+                "etag": {
+                    "description": "Etag: The HTTP entity tag (https://en.wikipedia.org/wiki/HTTP_ETag) of the\nresource. Used for web cache validation.",
+                    "type": "string"
+                },
+                "events": {
+                    "description": "Events: The person's events.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.Event"
+                    }
+                },
+                "externalIds": {
+                    "description": "ExternalIds: The person's external IDs.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.ExternalId"
+                    }
+                },
+                "fileAses": {
+                    "description": "FileAses: The person's file-ases.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.FileAs"
+                    }
+                },
+                "genders": {
+                    "description": "Genders: The person's genders. This field is a singleton for contact\nsources.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.Gender"
+                    }
+                },
+                "imClients": {
+                    "description": "ImClients: The person's instant messaging clients.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.ImClient"
+                    }
+                },
+                "interests": {
+                    "description": "Interests: The person's interests.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.Interest"
+                    }
+                },
+                "locales": {
+                    "description": "Locales: The person's locale preferences.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.Locale"
+                    }
+                },
+                "locations": {
+                    "description": "Locations: The person's locations.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.Location"
+                    }
+                },
+                "memberships": {
+                    "description": "Memberships: The person's group memberships.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.Membership"
+                    }
+                },
+                "metadata": {
+                    "description": "Metadata: Output only. Metadata about the person.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.PersonMetadata"
+                        }
+                    ]
+                },
+                "miscKeywords": {
+                    "description": "MiscKeywords: The person's miscellaneous keywords.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.MiscKeyword"
+                    }
+                },
+                "names": {
+                    "description": "Names: The person's names. This field is a singleton for contact sources.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.Name"
+                    }
+                },
+                "nicknames": {
+                    "description": "Nicknames: The person's nicknames.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.Nickname"
+                    }
+                },
+                "occupations": {
+                    "description": "Occupations: The person's occupations.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.Occupation"
+                    }
+                },
+                "organizations": {
+                    "description": "Organizations: The person's past or current organizations.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.Organization"
+                    }
+                },
+                "phoneNumbers": {
+                    "description": "PhoneNumbers: The person's phone numbers. For `people.connections.list` and\n`otherContacts.list` the number of phone numbers is limited to 100. If a\nPerson has more phone numbers the entire set can be obtained by calling\nGetPeople.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.PhoneNumber"
+                    }
+                },
+                "photos": {
+                    "description": "Photos: Output only. The person's photos.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.Photo"
+                    }
+                },
+                "relations": {
+                    "description": "Relations: The person's relations.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.Relation"
+                    }
+                },
+                "relationshipInterests": {
+                    "description": "RelationshipInterests: Output only. **DEPRECATED**: No data will be returned\nThe person's relationship interests.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.RelationshipInterest"
+                    }
+                },
+                "relationshipStatuses": {
+                    "description": "RelationshipStatuses: Output only. **DEPRECATED**: No data will be returned\nThe person's relationship statuses.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.RelationshipStatus"
+                    }
+                },
+                "residences": {
+                    "description": "Residences: **DEPRECATED**: (Please use `person.locations` instead) The\nperson's residences.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.Residence"
+                    }
+                },
+                "resourceName": {
+                    "description": "ResourceName: The resource name for the person, assigned by the server. An\nASCII string in the form of `people/{person_id}`.",
+                    "type": "string"
+                },
+                "sipAddresses": {
+                    "description": "SipAddresses: The person's SIP addresses.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.SipAddress"
+                    }
+                },
+                "skills": {
+                    "description": "Skills: The person's skills.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.Skill"
+                    }
+                },
+                "taglines": {
+                    "description": "Taglines: Output only. **DEPRECATED**: No data will be returned The person's\ntaglines.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.Tagline"
+                    }
+                },
+                "urls": {
+                    "description": "Urls: The person's associated URLs.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.Url"
+                    }
+                },
+                "userDefined": {
+                    "description": "UserDefined: The person's user defined data.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.UserDefined"
+                    }
+                }
+            }
+        },
+        "people.PersonMetadata": {
+            "type": "object",
+            "properties": {
+                "deleted": {
+                    "description": "Deleted: Output only. True if the person resource has been deleted.\nPopulated only for `people.connections.list` and `otherContacts.list` sync\nrequests.",
+                    "type": "boolean"
+                },
+                "linkedPeopleResourceNames": {
+                    "description": "LinkedPeopleResourceNames: Output only. Resource names of people linked to\nthis resource.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "objectType": {
+                    "description": "ObjectType: Output only. **DEPRECATED** (Please use\n`person.metadata.sources.profileMetadata.objectType` instead) The type of\nthe person object.\n\nPossible values:\n  \"OBJECT_TYPE_UNSPECIFIED\" - Unspecified.\n  \"PERSON\" - Person.\n  \"PAGE\" - [Currents Page.](https://workspace.google.com/products/currents/)",
+                    "type": "string"
+                },
+                "previousResourceNames": {
+                    "description": "PreviousResourceNames: Output only. Any former resource names this person\nhas had. Populated only for `people.connections.list` requests that include\na sync token. The resource name may change when adding or removing fields\nthat link a contact and profile such as a verified email, verified phone\nnumber, or profile URL.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "sources": {
+                    "description": "Sources: The sources of data for the person.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/people.Source"
+                    }
+                }
+            }
+        },
+        "people.PhoneNumber": {
+            "type": "object",
+            "properties": {
+                "canonicalForm": {
+                    "description": "CanonicalForm: Output only. The canonicalized ITU-T E.164\n(https://law.resource.org/pub/us/cfr/ibr/004/itu-t.E.164.1.2008.pdf) form of\nthe phone number.",
+                    "type": "string"
+                },
+                "formattedType": {
+                    "description": "FormattedType: Output only. The type of the phone number translated and\nformatted in the viewer's account locale or the `Accept-Language` HTTP\nheader locale.",
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the phone number.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "type": {
+                    "description": "Type: The type of the phone number. The type can be custom or one of these\npredefined values: * `home` * `work` * `mobile` * `homeFax` * `workFax` *\n`otherFax` * `pager` * `workMobile` * `workPager` * `main` * `googleVoice` *\n`other`",
+                    "type": "string"
+                },
+                "value": {
+                    "description": "Value: The phone number.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.Photo": {
+            "type": "object",
+            "properties": {
+                "default": {
+                    "description": "Default: True if the photo is a default photo; false if the photo is a\nuser-provided photo.",
+                    "type": "boolean"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the photo.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "url": {
+                    "description": "Url: The URL of the photo. You can change the desired size by appending a\nquery parameter `sz={size}` at the end of the url, where {size} is the size\nin pixels. Example:\nhttps://lh3.googleusercontent.com/-T_wVWLlmg7w/AAAAAAAAAAI/AAAAAAAABa8/00gzXvDBYqw/s100/photo.jpg?sz=50",
+                    "type": "string"
+                }
+            }
+        },
+        "people.ProfileMetadata": {
+            "type": "object",
+            "properties": {
+                "objectType": {
+                    "description": "ObjectType: Output only. The profile object type.\n\nPossible values:\n  \"OBJECT_TYPE_UNSPECIFIED\" - Unspecified.\n  \"PERSON\" - Person.\n  \"PAGE\" - [Currents Page.](https://workspace.google.com/products/currents/)",
+                    "type": "string"
+                },
+                "userTypes": {
+                    "description": "UserTypes: Output only. The user types.\n\nPossible values:\n  \"USER_TYPE_UNKNOWN\" - The user type is not known.\n  \"GOOGLE_USER\" - The user is a Google user.\n  \"GPLUS_USER\" - The user is a Currents user.\n  \"GOOGLE_APPS_USER\" - The user is a Google Workspace user.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "people.PullPeopleResponse": {
+            "type": "object",
+            "properties": {
+                "checkpoint": {
+                    "$ref": "#/definitions/people.SyncCheckpoint"
+                },
+                "people": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/GooglePerson"
+                    }
+                }
+            }
+        },
+        "people.Relation": {
+            "type": "object",
+            "properties": {
+                "formattedType": {
+                    "description": "FormattedType: Output only. The type of the relation translated and\nformatted in the viewer's account locale or the locale specified in the\nAccept-Language HTTP header.",
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the relation.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "person": {
+                    "description": "Person: The name of the other person this relation refers to.",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "Type: The person's relation to the other person. The type can be custom or\none of these predefined values: * `spouse` * `child` * `mother` * `father` *\n`parent` * `brother` * `sister` * `friend` * `relative` * `domesticPartner`\n* `manager` * `assistant` * `referredBy` * `partner`",
+                    "type": "string"
+                }
+            }
+        },
+        "people.RelationshipInterest": {
+            "type": "object",
+            "properties": {
+                "formattedValue": {
+                    "description": "FormattedValue: Output only. The value of the relationship interest\ntranslated and formatted in the viewer's account locale or the locale\nspecified in the Accept-Language HTTP header.",
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the relationship interest.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "value": {
+                    "description": "Value: The kind of relationship the person is looking for. The value can be\ncustom or one of these predefined values: * `friend` * `date` *\n`relationship` * `networking`",
+                    "type": "string"
+                }
+            }
+        },
+        "people.RelationshipStatus": {
+            "type": "object",
+            "properties": {
+                "formattedValue": {
+                    "description": "FormattedValue: Output only. The value of the relationship status translated\nand formatted in the viewer's account locale or the `Accept-Language` HTTP\nheader locale.",
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the relationship status.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "value": {
+                    "description": "Value: The relationship status. The value can be custom or one of these\npredefined values: * `single` * `inARelationship` * `engaged` * `married` *\n`itsComplicated` * `openRelationship` * `widowed` * `inDomesticPartnership`\n* `inCivilUnion`",
+                    "type": "string"
+                }
+            }
+        },
+        "people.Residence": {
+            "type": "object",
+            "properties": {
+                "current": {
+                    "description": "Current: True if the residence is the person's current residence; false if\nthe residence is a past residence.",
+                    "type": "boolean"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the residence.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "value": {
+                    "description": "Value: The address of the residence.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.SipAddress": {
+            "type": "object",
+            "properties": {
+                "formattedType": {
+                    "description": "FormattedType: Output only. The type of the SIP address translated and\nformatted in the viewer's account locale or the `Accept-Language` HTTP\nheader locale.",
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the SIP address.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "type": {
+                    "description": "Type: The type of the SIP address. The type can be custom or or one of these\npredefined values: * `home` * `work` * `mobile` * `other`",
+                    "type": "string"
+                },
+                "value": {
+                    "description": "Value: The SIP address in the RFC 3261 19.1\n(https://tools.ietf.org/html/rfc3261#section-19.1) SIP URI format.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.Skill": {
+            "type": "object",
+            "properties": {
+                "metadata": {
+                    "description": "Metadata: Metadata about the skill.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "value": {
+                    "description": "Value: The skill; for example, `underwater basket weaving`.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.Source": {
+            "type": "object",
+            "properties": {
+                "etag": {
+                    "description": "Etag: **Only populated in `person.metadata.sources`.** The HTTP entity tag\n(https://en.wikipedia.org/wiki/HTTP_ETag) of the source. Used for web cache\nvalidation.",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "Id: The unique identifier within the source type generated by the server.",
+                    "type": "string"
+                },
+                "profileMetadata": {
+                    "description": "ProfileMetadata: Output only. **Only populated in\n`person.metadata.sources`.** Metadata about a source of type PROFILE.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.ProfileMetadata"
+                        }
+                    ]
+                },
+                "type": {
+                    "description": "Type: The source type.\n\nPossible values:\n  \"SOURCE_TYPE_UNSPECIFIED\" - Unspecified.\n  \"ACCOUNT\" - [Google Account](https://accounts.google.com).\n  \"PROFILE\" - [Google profile](https://profiles.google.com). You can view\nthe profile at\n[https://profiles.google.com/](https://profiles.google.com/){id}, where {id}\nis the source id.\n  \"DOMAIN_PROFILE\" - [Google Workspace domain\nprofile](https://support.google.com/a/answer/1628008).\n  \"CONTACT\" - [Google contact](https://contacts.google.com). You can view\nthe contact at\n[https://contact.google.com/](https://contact.google.com/){id}, where {id}\nis the source id.\n  \"OTHER_CONTACT\" - [Google \"Other\ncontact\"](https://contacts.google.com/other).\n  \"DOMAIN_CONTACT\" - [Google Workspace domain shared\ncontact](https://support.google.com/a/answer/9281635).",
+                    "type": "string"
+                },
+                "updateTime": {
+                    "description": "UpdateTime: Output only. **Only populated in `person.metadata.sources`.**\nLast update timestamp of this source.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.SyncCheckpoint": {
+            "type": "object",
+            "properties": {
+                "personId": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "people.Tagline": {
+            "type": "object",
+            "properties": {
+                "metadata": {
+                    "description": "Metadata: Metadata about the tagline.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "value": {
+                    "description": "Value: The tagline.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.Url": {
+            "type": "object",
+            "properties": {
+                "formattedType": {
+                    "description": "FormattedType: Output only. The type of the URL translated and formatted in\nthe viewer's account locale or the `Accept-Language` HTTP header locale.",
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the URL.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "type": {
+                    "description": "Type: The type of the URL. The type can be custom or one of these predefined\nvalues: * `home` * `work` * `blog` * `profile` * `homePage` * `ftp` *\n`reservations` * `appInstallPage`: website for a Currents application. *\n`other`",
+                    "type": "string"
+                },
+                "value": {
+                    "description": "Value: The URL.",
+                    "type": "string"
+                }
+            }
+        },
+        "people.UserDefined": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "description": "Key: The end user specified key of the user defined data.",
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "Metadata: Metadata about the user defined data.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/people.FieldMetadata"
+                        }
+                    ]
+                },
+                "value": {
+                    "description": "Value: The end user specified value of the user defined data.",
                     "type": "string"
                 }
             }

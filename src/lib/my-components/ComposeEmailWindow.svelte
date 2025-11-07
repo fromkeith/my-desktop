@@ -26,7 +26,9 @@
     const previousContents = $derived(emailContentsProvider(last ?? ""));
     const loadingContents = $derived(previousContents.isLoading);
 
-    const data = $derived(getInitialData(type, $previousMessage));
+    const data: IComposeEmailMeta | null = $derived(
+        getInitialData(type, $previousMessage),
+    );
 
     function getInitialData(
         type: ComposeType,
@@ -68,18 +70,22 @@
     }
 </script>
 
-<Window {window} scrollable={false}>
-    <MailPlusIcon slot="window-top-left" />
-    <div slot="content" class="h-full">
-        {#if !last && data}
-            <ComposeEmailContents srcEmail={data} />
-        {:else if $previousContents && data && !$loadingContents}
-            <ComposeEmailContents
-                srcEmail={data}
-                previousContents={$previousContents}
-            />
-        {:else}
-            <Progress value={null} />
-        {/if}
-    </div>
+<Window {window} title={data?.subject ?? "Compose"} scrollable={false}>
+    {#snippet windowTopLeft()}
+        <MailPlusIcon />
+    {/snippet}
+    {#snippet content()}
+        <div class="h-full">
+            {#if !last && data}
+                <ComposeEmailContents srcEmail={data} />
+            {:else if $previousContents && data && !$loadingContents}
+                <ComposeEmailContents
+                    srcEmail={data}
+                    previousContents={$previousContents}
+                />
+            {:else}
+                <Progress value={null} />
+            {/if}
+        </div>
+    {/snippet}
 </Window>

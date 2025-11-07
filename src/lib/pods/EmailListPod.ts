@@ -33,7 +33,7 @@ class EmailListProvider extends Provider<IGmailEntry[]> {
     }
     protected async build(db: Database): Promise<IGmailEntry[]> {
         const query: MangoQuery<IGmailEntry> = {
-            sort: [{ receivedAt: "desc" }],
+            sort: [{ internalDate: "desc" }],
             limit: 100,
         };
         if (this.labels.length > 0) {

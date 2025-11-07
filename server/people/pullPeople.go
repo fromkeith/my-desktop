@@ -1,4 +1,4 @@
-package messages
+package people
 
 import (
 	"fromkeith/my-desktop-server/globals"
@@ -12,18 +12,25 @@ import (
 )
 
 type SyncCheckpoint struct {
-	MessageId string `json:"messageId"`
+	PersonId  string `json:"personId"`
 	UpdatedAt string `json:"updatedAt"`
 }
 
-type PullMessagesResponse struct {
-	Messages   []data.GmailEntry `json:"messages"`
-	Checkpoint SyncCheckpoint    `json:"checkpoint"`
+type PullPeopleResponse struct {
+	People     []data.GooglePerson `json:"people"`
+	Checkpoint SyncCheckpoint      `json:"checkpoint"`
 }
 
-func PullMessage(r *gin.Context) {
-	messageId := r.Query("messageId")
-	lastId := toDocumentIdRequest(r, messageId)
+// PullPeople godoc
+// @Summary      Pull the people database
+// @Description  Pulls the people database to be local
+// @Tags         people
+// @Produce      json
+// @Success      200  {object}  PullPeopleResponse
+// @Router       /people/pull [get]
+func PullPeople(r *gin.Context) {
+	personId := r.Query("personId")
+	lastId := toDocumentIdRequest(r, personId)
 	updatedAtStr := r.Query("updatedAt")
 	updatedAt, _ := time.Parse(time.RFC3339Nano, updatedAtStr)
 
@@ -34,7 +41,7 @@ func PullMessage(r *gin.Context) {
 	}
 
 	opts := options.Find().SetSort(bson.D{{"updatedAt", 1}, {"_id", 1}}).SetLimit(batchSize)
-	cursor, err := globals.DocDb().Collection("Messages").Find(
+	cursor, err := globals.DocDb().Collection("People").Find(
 		r,
 		bson.M{
 			"$or": []bson.M{
@@ -53,25 +60,25 @@ func PullMessage(r *gin.Context) {
 	}
 	defer cursor.Close(r)
 
-	var messages []data.GmailEntry
-	if err := cursor.All(r, &messages); err != nil {
+	var people []data.GooglePerson
+	if err := cursor.All(r, &people); err != nil {
 		r.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
 	var nextId string
 	var nextUpdatedAt string
-	if len(messages) > 0 {
-		last := messages[len(messages)-1]
-		nextId = last.MessageId
+	if len(people) > 0 {
+		last := people[len(people)-1]
+		nextId = last.PersonId
 		nextUpdatedAt = last.UpdatedAt.Format(time.RFC3339Nano)
 	} else {
-		nextId = messageId
+		nextId = personId
 		nextUpdatedAt = updatedAtStr
 	}
 
-	r.JSON(200, PullMessagesResponse{
-		Messages:   messages,
-		Checkpoint: SyncCheckpoint{MessageId: nextId, UpdatedAt: nextUpdatedAt},
+	r.JSON(200, PullPeopleResponse{
+		People:     people,
+		Checkpoint: SyncCheckpoint{PersonId: nextId, UpdatedAt: nextUpdatedAt},
 	})
 }

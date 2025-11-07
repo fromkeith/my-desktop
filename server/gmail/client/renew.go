@@ -9,6 +9,7 @@ import (
 	"golang.org/x/oauth2"
 	"google.golang.org/api/gmail/v1"
 	"google.golang.org/api/option"
+	"google.golang.org/api/people/v1"
 )
 
 type storingTokenSource struct {
@@ -16,6 +17,13 @@ type storingTokenSource struct {
 	userId    string
 	provider  string
 	inner     oauth2.TokenSource
+}
+
+type googleClient struct {
+	gmail     *gmail.Service
+	people    *people.Service
+	userId    string
+	accountId string
 }
 
 func (s *storingTokenSource) Token() (*oauth2.Token, error) {
@@ -38,14 +46,14 @@ func (s *storingTokenSource) Token() (*oauth2.Token, error) {
 	return t, nil
 }
 
-func GmailClientForUser(ctx context.Context, accountId string, setToBackground bool) (*gmail.Service, string, error) {
+func GoogleClientFor(ctx context.Context, accountId string, setToBackground bool) (*googleClient, error) {
 	rec, err := oauth_basic.LoadTokenRecord(ctx, accountId, "google")
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 	log.Println("laoded token record", rec)
 	if rec == nil || rec.RefreshToken == "" {
-		return nil, "", errors.New("Invalid token")
+		return nil, errors.New("Invalid token")
 	}
 
 	// Seed token from DB
@@ -76,7 +84,16 @@ func GmailClientForUser(ctx context.Context, accountId string, setToBackground b
 	// Either gmail.New or gmail.NewService; both work. NewService lets you pass options.
 	svc, err := gmail.NewService(bkg, option.WithTokenSource(ts))
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
-	return svc, rec.UserId, nil
+	peopleSvc, err := people.NewService(bkg, option.WithTokenSource(ts))
+	if err != nil {
+		return nil, err
+	}
+	return &googleClient{
+		gmail:     svc,
+		people:    peopleSvc,
+		userId:    rec.UserId,
+		accountId: accountId,
+	}, nil
 }

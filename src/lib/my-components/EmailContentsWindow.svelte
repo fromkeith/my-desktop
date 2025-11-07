@@ -4,11 +4,20 @@
     import type { IWindow, IGmailEntry } from "$lib/models";
     import MailOpenIcon from "@lucide/svelte/icons/mail-open";
 
-    export let window: IWindow;
-    export let email: IGmailEntry;
+    let {
+        window,
+        email,
+    }: {
+        window: IWindow;
+        email: IGmailEntry;
+    } = $props();
 </script>
 
 <Window {window} title={email.subject}>
-    <MailOpenIcon slot="window-top-left" />
-    <EmailThread slot="content" {email} />
+    {#snippet windowTopLeft()}
+        <MailOpenIcon />
+    {/snippet}
+    {#snippet content()}
+        <EmailThread {email} />
+    {/snippet}
 </Window>

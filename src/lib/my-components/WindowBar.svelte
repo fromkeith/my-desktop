@@ -5,24 +5,37 @@
     import MinusIcon from "@lucide/svelte/icons/minus";
     import SquareIcon from "@lucide/svelte/icons/square";
     import XIcon from "@lucide/svelte/icons/x";
-    import { getContext } from "svelte";
+    import { getContext, type Snippet } from "svelte";
     import { windowProvider } from "$lib/pods/WindowsPod";
+    import type { IWindow } from "$lib/models";
 
     import { createEventDispatcher } from "svelte";
 
-    export let x = 0;
-    export let y = 0;
-    export let title: string | undefined;
+    let {
+        x = 0,
+        y = 0,
+        title = "",
+        windowTopLeft = undefined,
+        onmove,
+        onminimize,
+        onmaximize,
+    }: {
+        x: number;
+        y: number;
+        title: string;
+        windowTopLeft: Snippet | undefined;
+        onmove: (x: number, y: number) => void;
+        onminimize?: () => void | undefined;
+        onmaximize?: () => void | undefined;
+    } = $props();
 
-    let myWindow = getContext("window");
+    let myWindow: IWindow = getContext("window");
 
-    const dispatch = createEventDispatcher();
-
-    function minimize(e) {
-        dispatch("minimize");
+    function minimize() {
+        onminimize?.();
     }
     function maximize() {
-        dispatch("maximize");
+        onmaximize?.();
     }
     function close() {
         windowProvider().close(myWindow.windowId);
@@ -38,7 +51,7 @@
     let dragging = false;
 
     function onPointerDown(e: PointerEvent) {
-        if (e.target.tagName === "BUTTON") {
+        if (e.target?.tagName === "BUTTON") {
             return;
         }
         // where the pointer is relative to the box
@@ -70,7 +83,7 @@
 
         let x = left - c.left;
         let y = top - c.top;
-        dispatch("move", { x, y });
+        onmove?.(x, y);
     }
     function onPointerUp(e: PointerEvent) {
         dragging = false;
@@ -80,14 +93,14 @@
 
 <div
     bind:this={root}
-    on:pointermove={onPointerMove}
-    on:pointerup={onPointerUp}
-    on:pointercancel={onPointerUp}
-    on:pointerdown={onPointerDown}
+    onpointermove={onPointerMove}
+    onpointerup={onPointerUp}
+    onpointercancel={onPointerUp}
+    onpointerdown={onPointerDown}
     class="overflow-hidden w-full"
 >
     <div class="flex m-2 box-border">
-        <slot name="window-top-left" />
+        {@render windowTopLeft?.()}
         <div
             class="text-lg ml-2 overflow-hidden text-ellipsis whitespace-nowrap"
         >
