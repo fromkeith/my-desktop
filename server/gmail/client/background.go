@@ -133,8 +133,8 @@ func flush(ctx context.Context, writeWait map[string]refreshReq) {
 		if req.gmail {
 			client.SyncEmail(ctx, gmailSyncToken)
 		}
-		// if req.contacts {
-		// 	client.SyncPeople(ctx, contactsSyncToken)
-		// }
+		if req.contacts {
+			client.SyncPeople(ctx, contactsSyncToken)
+		}
 	}
 }

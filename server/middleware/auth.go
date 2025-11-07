@@ -11,6 +11,9 @@ import (
 func AuthTokenExtract() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			authHeader = c.Query("auth")
+		}
 		if authHeader != "" {
 			claims, err := auth.ValidateToken(strings.TrimPrefix(authHeader, "Bearer "))
 			if err != nil {

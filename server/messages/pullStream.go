@@ -18,10 +18,12 @@ func PullStream(r *gin.Context) {
 
 	matchStage := bson.D{{
 		"$match", bson.D{
-			{"accountId", accountId},
+			{"fullDocument.accountId", accountId},
 		},
 	}}
-	opts := options.ChangeStream().SetMaxAwaitTime(2 * time.Second)
+	opts := options.ChangeStream().
+		SetFullDocument(options.UpdateLookup).
+		SetMaxAwaitTime(10 * time.Second)
 	stream, err := globals.DocDb().Collection("Messages").Watch(r, mongo.Pipeline{matchStage}, opts)
 	if err != nil {
 		r.Error(err)
@@ -30,19 +32,35 @@ func PullStream(r *gin.Context) {
 	defer stream.Close(r)
 
 	r.Stream(func(w io.Writer) bool {
-		if stream.Next(r) {
+		log.Println("stream start")
+		if stream.Next(r.Request.Context()) {
 			var email data.GmailEntry
-			if err := stream.Decode(&email); err != nil {
+			var ev bson.M
+			if err := stream.Decode(ev); err != nil {
 				log.Println("failed to unmarshal email", err)
 				return false
 			}
-			r.SSEvent("message", email)
+			full, ok := ev["fullDocument"]
+			if !ok {
+				return true
+			}
+			raw, _ := bson.Marshal(full)
+			if err := bson.Unmarshal(raw, &email); err != nil {
+				log.Println("failed to unmarshal email", err)
+				return true
+			}
+
+			log.Println("Sent sync message")
+			r.SSEvent("message", PullMessagesResponse{
+				Messages:   []data.GmailEntry{email},
+				Checkpoint: SyncCheckpoint{MessageId: email.MessageId, UpdatedAt: email.UpdatedAt.Format(time.RFC3339Nano)},
+			})
 			// we return so gin can flush, we will get called again
 			return true
 		}
 		if err := stream.Err(); err != nil {
 			// same as context, so probably disconnect
-			if err == r.Err() {
+			if err == r.Request.Context().Err() {
 				return false
 			}
 			log.Println("stream failed!", err)

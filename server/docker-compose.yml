@@ -1,10 +1,31 @@
 services:
     mongodb:
         image: mongodb/mongodb-community-server:7.0-ubi8
-        environment:
-            - MONGODB_INITDB_ROOT_USERNAME=user
-            - MONGODB_INITDB_ROOT_PASSWORD=pass
+        command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
         ports:
             - "27017:27017"
         volumes:
             - ./.mongodb:/data/db
+        healthcheck:
+            test:
+                [
+                    "CMD-SHELL",
+                    "mongosh --eval 'db.adminCommand({ ping: 1 })' || exit 1",
+                ]
+            interval: 5s
+            timeout: 2s
+            retries: 20
+            start_period: 10s
+    mongo-init-replica:
+        image: mongodb/mongodb-community-server:7.0-ubi8
+        depends_on:
+            mongodb:
+                condition: service_healthy
+        command: >
+            mongosh --host mongodb:27017 --eval
+            'rs.initiate({_id:"rs0", members:[{_id:0, host:"localhost:27017"}]})'
+        restart: "no"
+# might need this to get replica state working
+#
+# mongosh "mongodb://localhost:27017/?directConnection=true" --eval "let cfg = rs.conf();cfg.members[0].host = 'localhost:27017';rs.reconfig(cfg, {force:true});"
+#

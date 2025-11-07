@@ -11,8 +11,9 @@ import {
     RxReplicationState,
 } from "rxdb/plugins/replication";
 import { authHeaderProvider } from "$lib/pods/AuthPod";
-import { toTypedRxJsonSchema } from "rxdb";
+import { toTypedRxJsonSchema, type RxReplicationPullStreamItem } from "rxdb";
 import type { IGmailEntry, IGooglePerson } from "$lib/models";
+import { Subject } from "rxjs";
 
 addRxPlugin(RxDBDevModePlugin);
 
@@ -139,6 +140,22 @@ export class Database {
                 schema: peopleSchema,
             },
         });
+        const messagePullStream$ = new Subject<
+            RxReplicationPullStreamItem<ICheckpoint, IGmailEntry>
+        >();
+
+        const auth = await authHeaderProvider().promise;
+
+        const eventSource = new EventSource(
+            `/api/messages/pullStream?auth=${auth.get("Authorization")}`,
+        );
+        eventSource.onmessage = (event) => {
+            const eventData = JSON.parse(event.data);
+            messagePullStream$.next({
+                documents: eventData.messages ?? [],
+                checkpoint: eventData.checkpoint,
+            });
+        };
         this.emailReplState = replicateRxCollection<ICheckpoint, IGmailEntry>({
             collection: this.db.messages,
             replicationIdentifier: "email-rep",
@@ -179,6 +196,7 @@ export class Database {
                         checkpoint: data.checkpoint,
                     };
                 },
+                stream$: messagePullStream$.asObservable(),
             },
         });
         this.emailReplState.error$.subscribe((error) => {
