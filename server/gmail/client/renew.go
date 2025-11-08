@@ -51,7 +51,6 @@ func GoogleClientFor(ctx context.Context, accountId string, setToBackground bool
 	if err != nil {
 		return nil, err
 	}
-	log.Println("laoded token record", rec)
 	if rec == nil || rec.RefreshToken == "" {
 		return nil, errors.New("Invalid token")
 	}

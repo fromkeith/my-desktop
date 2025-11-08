@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fromkeith/my-desktop-server/globals"
 	"fromkeith/my-desktop-server/gmail/client"
 	"fromkeith/my-desktop-server/gmail/data"
@@ -193,7 +194,16 @@ func GetMessageContents(r *gin.Context) {
 			return
 		}
 		// wait, then pull from db
-		client.FetchOneMessage(r, messageId)
+		entry, body, err := client.FetchGmailEntry(r, messageId)
+		if err != nil {
+			log.Println(err)
+			r.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Failed to get gmail entry"})
+			return
+		}
+		data.WriteGmailEntry(*entry)
+		data.WriteGmailEntryBody(*body)
+		r.JSON(http.StatusOK, entry)
+		return
 	}
 
 	filter := bson.D{

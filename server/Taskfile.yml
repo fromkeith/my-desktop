@@ -1,0 +1,29 @@
+# https://taskfile.dev
+
+version: "3"
+
+tasks:
+    build-server:
+        env:
+            CGO_ENABLED: 1
+        cmds:
+            - go build -tags=jsoniter .
+    build-injestor:
+        cmds:
+            - go build ./services/email-injestor
+
+    run-server:
+        deps:
+            - build-server
+        cmds:
+            - ./my-desktop-server
+    run-injestor:
+        deps:
+            - build-injestor
+        cmds:
+            - ./email-injestor
+
+    run-all:
+        deps:
+            - run-server
+            - run-injestor

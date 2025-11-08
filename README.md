@@ -41,11 +41,23 @@ hookdeck listen 5173 goauth
 
 ## Building
 
-Use build.bat... it sets the needed cgo flags. Make sure you have gcc:
+Make sure you have gcc on your path (eg. C:\msys64\mingw64\bin)
 
 ```
 Some people have good experiences with MSYS2: https://www.msys2.org/. After installing MSYS2, run pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-pkg-config to install MinGW and pkg-config. (This is the most recommended way by now.)
 ```
+
+Uses https://taskfile.dev/docs/guide
+
+```
+task run-all
+```
+
+
+alternatively:
+
+
+
 
 ## Generating Swagger
 

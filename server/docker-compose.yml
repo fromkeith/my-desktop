@@ -25,7 +25,31 @@ services:
             mongosh --host mongodb:27017 --eval
             'rs.initiate({_id:"rs0", members:[{_id:0, host:"localhost:27017"}]})'
         restart: "no"
-# might need this to get replica state working
+
+    kafka:
+        image: confluentinc/cp-kafka:latest
+        hostname: kafka
+        container_name: kafka
+        ports:
+            - "9092:9092"
+            - "9093:9093"
+        environment:
+            KAFKA_KRAFT_MODE: "true"
+            KAFKA_PROCESS_ROLES: controller,broker
+            KAFKA_NODE_ID: 1
+            KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+            KAFKA_LISTENERS: PLAINTEXT://kafka:9092,CONTROLLER://kafka:9093
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+            KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+            KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+            KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+            KAFKA_NUM_PARTITIONS: 1
+        volumes:
+            - ./.kafka-data:/var/lib/kafka/data
+#
+# might need this to get mongo replica state working
 #
 # mongosh "mongodb://localhost:27017/?directConnection=true" --eval "let cfg = rs.conf();cfg.members[0].host = 'localhost:27017';rs.reconfig(cfg, {force:true});"
 #

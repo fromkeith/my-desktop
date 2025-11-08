@@ -63,7 +63,7 @@ func StartWriter(ctx context.Context) {
 		case entry := <-writerQueue:
 			writeWait = append(writeWait, entry)
 			if len(writeWait) == 100 {
-				if err := bulkWriteEmails(ctx, writeWait); err != nil {
+				if err := BulkWriteEmails(ctx, writeWait); err != nil {
 					log.Printf("error writing entries: %v", err)
 				}
 				writeWait = writeWait[:0]
@@ -77,7 +77,7 @@ func StartWriter(ctx context.Context) {
 				modifyWait = modifyWait[:0]
 			}
 		case <-time.After(5 * time.Second):
-			if err := bulkWriteEmails(ctx, writeWait); err != nil {
+			if err := BulkWriteEmails(ctx, writeWait); err != nil {
 				log.Printf("error writing entries: %v", err)
 			}
 			writeWait = writeWait[:0]
@@ -158,7 +158,7 @@ func bulkModifyEmails(ctx context.Context, entries []modifyGmailEntry) error {
 	return nil
 }
 
-func bulkWriteEmails(ctx context.Context, entries []GmailEntry) error {
+func BulkWriteEmails(ctx context.Context, entries []GmailEntry) error {
 	if len(entries) == 0 {
 		return nil
 	}
@@ -206,13 +206,13 @@ func StartBodyWriter(ctx context.Context) {
 		case entry := <-bodyQueue:
 			writeWait = append(writeWait, entry)
 			if len(writeWait) == 100 {
-				if err := bulkWriteEmailBodies(ctx, writeWait); err != nil {
+				if err := BulkWriteEmailBodies(ctx, writeWait); err != nil {
 					log.Printf("error writing entries: %v", err)
 				}
 				writeWait = writeWait[:0]
 			}
 		case <-time.After(5 * time.Second):
-			if err := bulkWriteEmailBodies(ctx, writeWait); err != nil {
+			if err := BulkWriteEmailBodies(ctx, writeWait); err != nil {
 				log.Printf("error writing entries: %v", err)
 			}
 			writeWait = writeWait[:0]
@@ -222,7 +222,7 @@ func StartBodyWriter(ctx context.Context) {
 	}
 }
 
-func bulkWriteEmailBodies(ctx context.Context, entries []GmailEntryBody) error {
+func BulkWriteEmailBodies(ctx context.Context, entries []GmailEntryBody) error {
 	if len(entries) == 0 {
 		return nil
 	}

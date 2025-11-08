@@ -2,8 +2,10 @@ package client
 
 import (
 	"context"
+	"database/sql"
 	"encoding/base64"
 	"fromkeith/my-desktop-server/auth"
+	"fromkeith/my-desktop-server/globals"
 	oauth_basic "fromkeith/my-desktop-server/oauth"
 	"fromkeith/my-desktop-server/utils"
 	"log"
@@ -146,14 +148,34 @@ func HandleCallback(r *gin.Context) {
 	existingAccountId := sess["claimed_id"]
 	// new user
 	isNewUser := false
+	assignAuth := false
 	if existingAccountId == "" {
-		existingAccountId = "acct_" + uuid.New().String()
-		isNewUser = true
-		err := oauth_basic.CreateAccount(r, existingAccountId)
-		if err != nil {
-			log.Println(err)
-			r.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to create account"})
-			return
+		assignAuth = true
+
+		row := globals.Db().QueryRowContext(r, `
+			SELECT u.account_id
+			FROM user_oauth_accounts u
+			WHERE u.user_id = ?
+			`,
+			claims.Sub,
+		)
+		// failed to get existing account... create a new one?
+		if err := row.Scan(&existingAccountId); err != nil {
+
+			if err == sql.ErrNoRows {
+				existingAccountId = "acct_" + uuid.New().String()
+				isNewUser = true
+				err := oauth_basic.CreateAccount(r, existingAccountId)
+				if err != nil {
+					log.Println(err)
+					r.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to create account"})
+					return
+				}
+			} else {
+				log.Println(err)
+				r.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to save token"})
+				return
+			}
 		}
 	}
 
@@ -173,7 +195,7 @@ func HandleCallback(r *gin.Context) {
 	}
 
 	extraQuery := ""
-	if isNewUser {
+	if assignAuth {
 		claims := auth.DesktopClaims{}
 		claims.Subject = existingAccountId
 		tokenString, err := auth.CreateToken(claims)
@@ -184,11 +206,12 @@ func HandleCallback(r *gin.Context) {
 		}
 		extraQuery = "?auth=" + tokenString
 
-		bkg := context.Background()
-		client, _ := GmailClient(bkg, existingAccountId, true)
-		go client.Bootstrap(bkg)
+		if isNewUser {
+			bkg := context.Background()
+			client, _ := GmailClient(bkg, existingAccountId, true)
+			go client.Bootstrap(bkg)
+		}
 	}
-
 	// Done — redirect back to your app
 	r.Redirect(http.StatusFound, os.Getenv("DOMAIN_URL")+sess["post_auth_return"]+extraQuery)
 }

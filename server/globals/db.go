@@ -38,6 +38,10 @@ func CloseAll() {
 		mongoDb.Client().Disconnect(context.Background())
 		mongoDb = nil
 	}
+	if kafkaConn != nil {
+		kafkaConn.Close()
+		kafkaConn = nil
+	}
 }
 
 func DocDb() *mongo.Database {

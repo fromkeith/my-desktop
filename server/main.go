@@ -14,11 +14,7 @@ import (
 	_ "fromkeith/my-desktop-server/docs"
 
 	"github.com/gin-gonic/gin"
-
-	jsoniter "github.com/json-iterator/go"
 )
-
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // @title           Desktop Eamil
 // @version         1.0
@@ -28,7 +24,7 @@ var json = jsoniter.ConfigCompatibleWithStandardLibrary
 // @host      localhost:5173
 // @BasePath  /api
 func main() {
-	SetupJsonEncoding()
+	globals.SetupJsonEncoding()
 
 	defer globals.CloseAll()
 

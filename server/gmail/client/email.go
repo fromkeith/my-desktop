@@ -6,13 +6,12 @@ import (
 	"fromkeith/my-desktop-server/globals"
 	"fromkeith/my-desktop-server/gmail/data"
 	"log"
-	"math"
 	"net/mail"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
+	"github.com/segmentio/kafka-go"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"google.golang.org/api/gmail/v1"
 	"google.golang.org/api/googleapi"
@@ -20,22 +19,15 @@ import (
 
 func (g *googleClient) SyncEmail(ctx context.Context, syncToken string) error {
 
+	emailInjest := globals.KafkaWriter("email_injest")
+	defer emailInjest.Close()
+	writeQueue := make([]kafka.Message, 0, 50)
+
 	var startHistoryId uint64
 	startHistoryId, _ = strconv.ParseUint(syncToken, 10, 64)
 	var nextHistoryId uint64 = startHistoryId
 
-	const workers = 4
-	idCh := make(chan string, 500)
-	errCh := make(chan error, 500)
-	maxInternalDateChan := make(chan int64, workers)
-	var wg sync.WaitGroup
-	wg.Add(workers)
-
-	for range workers {
-		go g.fetchContentsWorker(ctx, &wg, idCh, errCh, maxInternalDateChan)
-	}
 	pageToken := ""
-
 	log.Println("startHistory", startHistoryId)
 
 	for {
@@ -60,7 +52,23 @@ func (g *googleClient) SyncEmail(ctx context.Context, syncToken string) error {
 		for _, history := range listRes.History {
 			// new messages
 			for _, message := range history.MessagesAdded {
-				idCh <- message.Message.Id
+				value, _ := json.Marshal(data.EmailInjestPayload{
+					MessageId: message.Message.Id,
+					AccountId: g.accountId,
+					UserId:    g.userId,
+				})
+				msg := kafka.Message{
+					Key:   []byte(message.Message.Id),
+					Value: value,
+				}
+				writeQueue = append(writeQueue, msg)
+				if len(writeQueue) >= 50 {
+					if err := emailInjest.WriteMessages(ctx, writeQueue...); err != nil {
+						log.Println("Failed to write sync messages", err)
+						return err
+					}
+					writeQueue = writeQueue[:0]
+				}
 			}
 			// deleted messages.. not trashed.. actually deleted
 			for _, message := range history.MessagesDeleted {
@@ -87,26 +95,10 @@ func (g *googleClient) SyncEmail(ctx context.Context, syncToken string) error {
 		pageToken = listRes.NextPageToken
 
 	}
-
-	close(idCh)
-	// wait until we are done, helper
-	doneWait := make(chan bool)
-	go func() {
-		wg.Wait()
-		log.Println("done watiting")
-		doneWait <- true
-	}()
-	// waits until done and gets all errors out
-	var minInternalDate int64 = math.MaxInt64
-errorLoop:
-	for {
-		select {
-		case err := <-errCh:
-			log.Println("Had error fetching", err)
-		case maxD := <-maxInternalDateChan:
-			minInternalDate = min(maxD, minInternalDate)
-		case <-doneWait:
-			break errorLoop
+	if len(writeQueue) >= 0 {
+		if err := emailInjest.WriteMessages(ctx, writeQueue...); err != nil {
+			log.Println("Failed to write sync messages", err)
+			return err
 		}
 	}
 
@@ -124,7 +116,7 @@ errorLoop:
 		`,
 		g.userId,
 		nextHistoryId,
-		minInternalDate,
+		time.Now().Unix(),
 		time.Now().Format(time.RFC3339),
 	)
 	if err != nil {
@@ -146,21 +138,14 @@ func (g *googleClient) BootstrapEmail(ctx context.Context) error {
 		log.Println("Failed to get user baseline", err)
 		return err
 	}
+	emailInjest := globals.KafkaWriter("email_injest")
+	defer emailInjest.Close()
+	writeQueue := make([]kafka.Message, 0, 50)
+
 	lastHistoryId := prof.HistoryId
 
 	pageToken := ""
 	var remaining int64 = 500
-
-	const workers = 8
-	idCh := make(chan string, 500)
-	errCh := make(chan error, 500)
-	maxInternalDateChan := make(chan int64, workers)
-	var wg sync.WaitGroup
-	wg.Add(workers)
-
-	for range workers {
-		go g.fetchContentsWorker(ctx, &wg, idCh, errCh, maxInternalDateChan)
-	}
 
 	for remaining > 0 {
 		pageSize := min(remaining, 100)
@@ -183,7 +168,20 @@ func (g *googleClient) BootstrapEmail(ctx context.Context) error {
 			break
 		}
 		for _, m := range listRes.Messages {
-			idCh <- m.Id
+			value, _ := json.Marshal(data.EmailInjestPayload{
+				MessageId: m.Id,
+				AccountId: g.accountId,
+				UserId:    g.userId,
+			})
+			msg := kafka.Message{
+				Key:   []byte(m.Id),
+				Value: value,
+			}
+			writeQueue = append(writeQueue, msg)
+			if len(writeQueue) >= 50 {
+				emailInjest.WriteMessages(ctx, writeQueue...)
+				writeQueue = writeQueue[:0]
+			}
 			remaining--
 		}
 
@@ -192,29 +190,9 @@ func (g *googleClient) BootstrapEmail(ctx context.Context) error {
 		}
 		pageToken = listRes.NextPageToken
 	}
-	log.Println("done loading ids")
-	close(idCh)
-	// wait until we are done, helper
-	doneWait := make(chan bool)
-	go func() {
-		wg.Wait()
-		log.Println("done watiting")
-		doneWait <- true
-	}()
-	// waits until done and gets all errors out
-	var minInternalDate int64 = math.MaxInt64
-errorLoop:
-	for {
-		select {
-		case err := <-errCh:
-			log.Println("Had error fetching", err)
-		case maxD := <-maxInternalDateChan:
-			minInternalDate = min(maxD, minInternalDate)
-		case <-doneWait:
-			break errorLoop
-		}
+	if len(writeQueue) > 0 {
+		emailInjest.WriteMessages(ctx, writeQueue...)
 	}
-	log.Println("done fetching?")
 
 	_, err = globals.Db().ExecContext(ctx, `
 	INSERT INTO gmail_sync_status (
@@ -230,7 +208,7 @@ errorLoop:
 		`,
 		g.userId,
 		lastHistoryId,
-		minInternalDate,
+		time.Now().Unix(),
 		time.Now().Format(time.RFC3339),
 	)
 	if err != nil {
@@ -241,114 +219,65 @@ errorLoop:
 	return nil
 }
 
-func (g *googleClient) FetchOneMessage(ctx context.Context, messageId string) error {
-	idCh := make(chan string, 1)
-	errCh := make(chan error, 1)
-	maxInternalDateChan := make(chan int64, 1)
-	var wg sync.WaitGroup
-	wg.Add(1)
+func (g *googleClient) FetchGmailEntry(ctx context.Context, id string) (*data.GmailEntry, *data.GmailEntryBody, error) {
 
-	go g.fetchContentsWorker(ctx, &wg, idCh, errCh, maxInternalDateChan)
-	idCh <- messageId
-	close(idCh)
-
-	// wait until we are done, helper
-	doneWait := make(chan bool)
-	go func() {
-		wg.Wait()
-		log.Println("done watiting")
-		doneWait <- true
-	}()
-	// waits until done and gets all errors out
-	var lastError error
-errorLoop:
-	for {
-		select {
-		case err := <-errCh:
-			lastError = err
-		case <-maxInternalDateChan:
-			// do nothing
-		case <-doneWait:
-			break errorLoop
+	log.Println("loading message", id)
+	msg, err := g.gmail.Users.Messages.
+		Get("me", id).
+		Format("full").
+		Do()
+	if err != nil {
+		// ignoring not found
+		if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == 404 {
+			return nil, nil, gErr
 		}
+		log.Println("Failed to load message", err)
+		return nil, nil, err
 	}
-	return lastError
-
-}
-
-func (g *googleClient) fetchContentsWorker(ctx context.Context, wg *sync.WaitGroup, idCh chan string, errCh chan error, maxInternalDateChan chan int64) {
-	defer func() {
-		e := recover()
-		if e != nil {
-			log.Println("panic")
-			log.Println(e)
-		}
-	}()
-	defer wg.Done()
-	var maxInternalDate int64 = 0
-	for id := range idCh {
-		log.Println("loading message", id)
-		msg, err := g.gmail.Users.Messages.
-			Get("me", id).
-			Format("full").
-			Do()
-		if err != nil {
-			// ignoring not found
-			if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == 404 {
-				continue
-			}
-			log.Println("Failed to load message", err)
-			errCh <- err
-			continue
-		}
-		headers := headerMap(msg.Payload.Headers)
-		var replyTo *data.PersonInfo
-		r := personFrom(headers, "reply-to")
-		if r.Email != "" {
-			replyTo = &r
-		}
-
-		entry := data.GmailEntry{
-			UserId:       g.userId,
-			AccountId:    g.accountId,
-			MessageId:    msg.Id,
-			ThreadId:     msg.ThreadId,
-			Labels:       msg.LabelIds,
-			Subject:      headers["subject"],
-			Snippet:      msg.Snippet,
-			HistoryId:    msg.HistoryId,
-			InternalDate: msg.InternalDate,
-			Headers:      headers,
-			Sender:       personFrom(headers, "from"),
-			Receiver:     peopleFrom(headers, "to"),
-			ReceivedAt:   headers["date"],
-			ReplyTo:      replyTo,
-			IsDeleted:    false,
-			AdditionalReceivers: map[string][]data.PersonInfo{
-				"bcc": peopleFrom(headers, "bcc"),
-				"cc":  peopleFrom(headers, "cc"),
-			},
-		}
-		maxInternalDate = max(maxInternalDate, entry.InternalDate)
-		data.WriteGmailEntry(entry)
-		text, html, hasAtt, inlineIds := extractBodies(msg.Payload)
-		hasAttInt := 0
-		if hasAtt {
-			hasAttInt = 1
-		}
-		body := data.GmailEntryBody{
-			UserId:         entry.UserId,
-			MessageId:      entry.MessageId,
-			AccountId:      entry.AccountId,
-			PlainText:      text,
-			Html:           html,
-			HasAttachments: hasAttInt,
-			AttachmentIds:  inlineIds,
-		}
-		data.WriteGmailEntryBody(body)
+	headers := headerMap(msg.Payload.Headers)
+	var replyTo *data.PersonInfo
+	r := personFrom(headers, "reply-to")
+	if r.Email != "" {
+		replyTo = &r
 	}
-	log.Println("done fetching contents")
-	maxInternalDateChan <- maxInternalDate
+
+	entry := data.GmailEntry{
+		UserId:       g.userId,
+		AccountId:    g.accountId,
+		MessageId:    msg.Id,
+		ThreadId:     msg.ThreadId,
+		Labels:       msg.LabelIds,
+		Subject:      headers["subject"],
+		Snippet:      msg.Snippet,
+		HistoryId:    msg.HistoryId,
+		InternalDate: msg.InternalDate,
+		Headers:      headers,
+		Sender:       personFrom(headers, "from"),
+		Receiver:     peopleFrom(headers, "to"),
+		ReceivedAt:   headers["date"],
+		ReplyTo:      replyTo,
+		IsDeleted:    false,
+		AdditionalReceivers: map[string][]data.PersonInfo{
+			"bcc": peopleFrom(headers, "bcc"),
+			"cc":  peopleFrom(headers, "cc"),
+		},
+	}
+
+	text, html, hasAtt, inlineIds := extractBodies(msg.Payload)
+	hasAttInt := 0
+	if hasAtt {
+		hasAttInt = 1
+	}
+	body := data.GmailEntryBody{
+		UserId:         entry.UserId,
+		MessageId:      entry.MessageId,
+		AccountId:      entry.AccountId,
+		PlainText:      text,
+		Html:           html,
+		HasAttachments: hasAttInt,
+		AttachmentIds:  inlineIds,
+	}
+	return &entry, &body, nil
 
 }
 
