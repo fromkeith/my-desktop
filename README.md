@@ -5,14 +5,14 @@
 Listens on port 8080
 Vite (npm run dev) will automatically proxy any /api call to the server
 
-## Database (Sqlite)
+## Database (Postgres)
 
 Migrations
 
 Use: https://github.com/amacneil/dbmate
 
 ```bash
-dbmate -d .\migrations -u sqlite:desktop.sqlite3 up
+dbmate -d .\migrations -u postgres://postgres:postgres@localhost:5432/desktop?sslmode=disable up
 ```
 
 ## Database (MongoDB)

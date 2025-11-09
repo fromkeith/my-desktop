@@ -3,10 +3,10 @@ package oauth_basic
 import (
 	"context"
 	"fromkeith/my-desktop-server/globals"
-	"log"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 type TokenRecord struct {
@@ -17,40 +17,41 @@ type TokenRecord struct {
 	Expiry       time.Time
 	TokenType    string
 	Scope        string
+	Version      int64
 }
 
 func CreateAccount(r *gin.Context, accountId string) error {
-	_, err := globals.Db().ExecContext(r, `
-		INSERT INTO user_accounts (
-			account_id,
-			created_at
-		) VALUES (?, ?)
-		`, accountId, time.Now().Format(time.RFC3339))
+	_, err := globals.Db().Exec(r, `
+		INSERT INTO UserAccounts (
+			accountId,
+			createdAt
+		) VALUES ($1, $2)
+		`, accountId, time.Now().UTC())
 	return err
 }
 
 func SaveSession(r *gin.Context, session map[string]string) error {
 	claimedId := r.GetString("accountId")
-	_, err := globals.Db().ExecContext(r, `
-		INSERT INTO oauth_init_session(
+	_, err := globals.Db().Exec(r, `
+		INSERT INTO OauthInitSession(
 			state,
-			claimed_id,
-			code_verifier,
-			post_auth_return,
-			created_at,
-			expires_at
+			claimedId,
+			codeVerifier,
+			postAuthReturn,
+			createdAt,
+			expiresAt
 		) VALUES (
-		?,?,
-		?,?,
-		?,?
+		$1,$2,
+		$3,$4,
+		$5,$6
 		)
 		`,
 		session["state"],
 		claimedId,
 		session["code_verifier"],
 		session["post_auth_return"],
-		time.Now().Format(time.RFC3339),
-		time.Now().Add(time.Minute*30).Format(time.RFC3339),
+		time.Now().UTC(),
+		time.Now().UTC().Add(time.Minute*30),
 	)
 	return err
 }
@@ -58,21 +59,21 @@ func SaveSession(r *gin.Context, session map[string]string) error {
 // TODO: this is lazy and dumb to use a map
 func MustLoadSession(r *gin.Context, source_state string) map[string]string {
 
-	row := globals.Db().QueryRowContext(r, `
+	row := globals.Db().QueryRow(r, `
 		SELECT
 			state,
-			claimed_id,
-			code_verifier,
-			post_auth_return,
-			created_at,
-			expires_at
-		FROM oauth_init_session
-		WHERE state = ?
+			claimedId,
+			codeVerifier,
+			postAuthReturn,
+			createdAt,
+			expiresAt
+		FROM OauthInitSession
+		WHERE state = $1
 		`,
 		source_state)
 
 	var state, code_verifier, post_auth_return, existingId string
-	var expires_at, created_at string
+	var expires_at, created_at time.Time
 	err := row.Scan(
 		&state,
 		&existingId,
@@ -82,7 +83,10 @@ func MustLoadSession(r *gin.Context, source_state string) map[string]string {
 		&expires_at,
 	)
 	if err != nil {
-		log.Println(err)
+		log.Error().
+			Ctx(r).
+			Err(err).
+			Msg("failed to load OauthInitSession")
 		return make(map[string]string)
 	}
 	return map[string]string{
@@ -90,94 +94,106 @@ func MustLoadSession(r *gin.Context, source_state string) map[string]string {
 		"claimed_id":       existingId,
 		"code_verifier":    code_verifier,
 		"post_auth_return": post_auth_return,
-		"expires_at":       expires_at,
-		"created_at":       created_at,
+		"expires_at":       expires_at.Format(time.RFC3339Nano),
+		"created_at":       created_at.Format(time.RFC3339Nano),
 	}
 }
 
 func LoadTokenRecord(ctx context.Context, accountId, provider string) (*TokenRecord, error) {
-	row := globals.Db().QueryRowContext(ctx, `
-		SELECT o.user_id, access_token, refresh_token, expiry, token_type, scope
-		FROM user_oauth_accounts u
-		INNER JOIN oauth_token_record o
-		WHERE u.account_id = ?
-		AND o.provider = ?
+	row := globals.Db().QueryRow(ctx, `
+		SELECT o.userId, accessToken, refreshToken, expiry, tokenType, scope, version
+		FROM UserOauthAccounts u
+		INNER JOIN OauthTokenRecord o ON u.userId = o.userId
+		WHERE u.accountId = $1
+		AND o.provider = $2
 		LIMIT 1
 		`, accountId, provider)
 	rec := TokenRecord{
 		Provider: "google",
 	}
-	var expiry string
 	err := row.Scan(
 		&rec.UserId,
 		&rec.AccessToken,
 		&rec.RefreshToken,
-		&expiry,
+		&rec.Expiry,
 		&rec.TokenType,
 		&rec.Scope,
+		&rec.Version,
 	)
 	if err != nil {
 		return nil, err
 	}
-	log.Println("saved expiry is", expiry)
-	rec.Expiry, _ = time.Parse(time.RFC3339, expiry)
+
 	return &rec, nil
 }
 
 func SaveTokenRecord(r context.Context, accountId string, rec TokenRecord) error {
-	tx, err := globals.Db().BeginTx(r, nil)
+	tx, err := globals.Db().Begin(r)
 	if err != nil {
-		log.Println(err)
+		log.Error().
+			Ctx(r).
+			Err(err).
+			Msg("failed to beging transaction to save token record")
 		return err
 	}
-	_, err = tx.Exec(`
-		INSERT INTO oauth_token_record (
-			user_id,
+	_, err = tx.Exec(r, `
+		INSERT INTO OauthTokenRecord (
+			userId,
 		    provider,
-		    access_token,
-		    refresh_token,
+		    accessToken,
+		    refreshToken,
 		    expiry,
-		    token_type,
-		    scope
+		    tokenType,
+		    scope,
+			updatedAt
 		) VALUES (
-			?, ?,
-			?, ?,
-			?, ?,
-			?
-		) ON CONFLICT (user_id) DO UPDATE SET
-		    access_token = excluded.access_token,
-		    refresh_token = excluded.refresh_token,
-		    expiry = excluded.expiry,
-		    token_type = excluded.token_type,
-		    scope = excluded.scope
+			$1, $2,
+			$3, $4,
+			$5, $6,
+			$7, $8
+		) ON CONFLICT (userId) DO UPDATE SET
+		    accessToken = EXCLUDED.accessToken,
+		    refreshToken = EXCLUDED.refreshToken,
+		    expiry = EXCLUDED.expiry,
+		    tokenType = EXCLUDED.tokenType,
+		    scope = EXCLUDED.scope,
+		    updatedAt = EXCLUDED.updatedAt,
+			version = OauthTokenRecord.version + 1
 		`,
 		rec.UserId,
 		rec.Provider,
 		rec.AccessToken,
 		rec.RefreshToken,
-		rec.Expiry.Format(time.RFC3339),
+		rec.Expiry.UTC(),
 		rec.TokenType,
 		rec.Scope,
+		time.Now().UTC(),
 	)
 	if err != nil {
-		log.Println(err)
-		tx.Rollback()
+		log.Error().
+			Ctx(r).
+			Err(err).
+			Msg("failed to save OAuthTokenRecord")
+		tx.Rollback(r)
 		return err
 	}
-	tx.Exec(`
-		INSERT INTO user_oauth_accounts (
-			account_id,
-			user_id
-		) VALUES (?, ?)
-		ON CONFLICT DO NOTHING
+	_, err = tx.Exec(r, `
+		INSERT INTO UserOauthAccounts (
+			accountId,
+			userId
+		) VALUES ($1, $2)
+		ON CONFLICT (accountId, userId) DO NOTHING
 		`,
 		accountId,
 		rec.UserId,
 	)
 	if err != nil {
-		log.Println(err)
-		tx.Rollback()
+		log.Error().
+			Ctx(r).
+			Err(err).
+			Msg("failed to save UserOAuthAccount")
+		tx.Rollback(r)
 		return err
 	}
-	return tx.Commit()
+	return tx.Commit(r)
 }

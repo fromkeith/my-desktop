@@ -26,9 +26,10 @@ func Kafka() *kafka.Conn {
 // A one off writer.. You are responsible for closing it
 func KafkaWriter(topic string) *kafka.Writer {
 	return &kafka.Writer{
-		Addr:     kafka.TCP(os.Getenv("KAFKA_URI")),
-		Topic:    "my-topic",
-		Balancer: &kafka.LeastBytes{},
+		Addr:                   kafka.TCP(os.Getenv("KAFKA_URI")),
+		Topic:                  topic,
+		Balancer:               &kafka.LeastBytes{},
+		AllowAutoTopicCreation: true,
 	}
 }
 
@@ -36,9 +37,10 @@ func KafkaWriter(topic string) *kafka.Writer {
 func KafkaReader(topic string, partition int) *kafka.Reader {
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:   []string{os.Getenv("KAFKA_URI")},
-		Topic:     "my-topic",
+		Topic:     topic,
 		Partition: partition,
 		MaxBytes:  10e6, // 10MB
+
 	})
 	// TODO: close on sigterm/sigint
 	return r
@@ -48,7 +50,7 @@ func KafkaReader(topic string, partition int) *kafka.Reader {
 func KafkaConsumerGroup(topic string, groupId string) *kafka.Reader {
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:  []string{os.Getenv("KAFKA_URI")},
-		Topic:    "my-topic",
+		Topic:    topic,
 		GroupID:  groupId,
 		MaxBytes: 10e6, // 10MB
 	})

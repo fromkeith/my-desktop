@@ -5,12 +5,12 @@ import (
 	"encoding/base64"
 	"fromkeith/my-desktop-server/globals"
 	"fromkeith/my-desktop-server/gmail/data"
-	"log"
 	"net/mail"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog/log"
 	"github.com/segmentio/kafka-go"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"google.golang.org/api/gmail/v1"
@@ -28,7 +28,10 @@ func (g *googleClient) SyncEmail(ctx context.Context, syncToken string) error {
 	var nextHistoryId uint64 = startHistoryId
 
 	pageToken := ""
-	log.Println("startHistory", startHistoryId)
+	log.Info().
+		Ctx(ctx).
+		Uint64("startHistory", startHistoryId).
+		Msg("SyncEmail")
 
 	for {
 
@@ -58,13 +61,16 @@ func (g *googleClient) SyncEmail(ctx context.Context, syncToken string) error {
 					UserId:    g.userId,
 				})
 				msg := kafka.Message{
-					Key:   []byte(message.Message.Id),
+					Key:   []byte(g.accountId + ";" + message.Message.Id),
 					Value: value,
 				}
 				writeQueue = append(writeQueue, msg)
 				if len(writeQueue) >= 50 {
 					if err := emailInjest.WriteMessages(ctx, writeQueue...); err != nil {
-						log.Println("Failed to write sync messages", err)
+						log.Error().
+							Ctx(ctx).
+							Err(err).
+							Msg("Failed write MessagesAdded to Kafka")
 						return err
 					}
 					writeQueue = writeQueue[:0]
@@ -97,45 +103,55 @@ func (g *googleClient) SyncEmail(ctx context.Context, syncToken string) error {
 	}
 	if len(writeQueue) >= 0 {
 		if err := emailInjest.WriteMessages(ctx, writeQueue...); err != nil {
-			log.Println("Failed to write sync messages", err)
+			log.Error().
+				Ctx(ctx).
+				Err(err).
+				Msg("Failed write MessagesAdded to Kafka (2)")
 			return err
 		}
 	}
 
-	_, err := globals.Db().ExecContext(ctx, `
-	INSERT INTO gmail_sync_status (
-		user_id,
-		history_id,
+	_, err := globals.Db().Exec(ctx, `
+	INSERT INTO GmailSyncStatus (
+		userId,
+		historyId,
 		until,
-		last_sync_time
-	) VALUES (?, ?, ?, ?)
-	ON CONFLICT(user_id) DO UPDATE SET
-		history_id = excluded.history_id,
-		until = MIN(excluded.until, until),
-		last_sync_time = MAX(excluded.last_sync_time, until)
+		lastSyncTime
+	) VALUES ($1, $2, $3, $4)
+	ON CONFLICT(userId) DO UPDATE SET
+		historyId = EXCLUDED.historyId,
+		until = LEAST(EXCLUDED.until, GmailSyncStatus.until),
+		lastSyncTime = GREATEST(EXCLUDED.lastSyncTime, GmailSyncStatus.lastSyncTime)
 		`,
 		g.userId,
 		nextHistoryId,
 		time.Now().Unix(),
-		time.Now().Format(time.RFC3339),
+		time.Now().UTC(),
 	)
 	if err != nil {
-		log.Println("Failed to save sync status", err)
+		log.Error().
+			Ctx(ctx).
+			Err(err).
+			Msg("Failed save sync status")
 	}
 
-	log.Println("done syncing", nextHistoryId)
 	return nil
 
 }
 
 // loads the first 500 messages
 func (g *googleClient) BootstrapEmail(ctx context.Context) error {
-	log.Println("Bootstrapping gmail inbox")
+	log.Info().
+		Ctx(ctx).
+		Msg("Bootstrapping gmail inbox")
 
 	// get this up front, so we have the right history id at the end
 	prof, err := g.gmail.Users.GetProfile("me").Do()
 	if err != nil {
-		log.Println("Failed to get user baseline", err)
+		log.Error().
+			Ctx(ctx).
+			Err(err).
+			Msg("Failed to get user baseline")
 		return err
 	}
 	emailInjest := globals.KafkaWriter("email_injest")
@@ -174,12 +190,18 @@ func (g *googleClient) BootstrapEmail(ctx context.Context) error {
 				UserId:    g.userId,
 			})
 			msg := kafka.Message{
-				Key:   []byte(m.Id),
+				Key:   []byte(g.accountId + ";" + m.Id),
 				Value: value,
 			}
 			writeQueue = append(writeQueue, msg)
 			if len(writeQueue) >= 50 {
-				emailInjest.WriteMessages(ctx, writeQueue...)
+				if err := emailInjest.WriteMessages(ctx, writeQueue...); err != nil {
+					log.Error().
+						Ctx(ctx).
+						Err(err).
+						Msg("Failed to write Bootstrap Messages to Kafka")
+					return err
+				}
 				writeQueue = writeQueue[:0]
 			}
 			remaining--
@@ -191,37 +213,49 @@ func (g *googleClient) BootstrapEmail(ctx context.Context) error {
 		pageToken = listRes.NextPageToken
 	}
 	if len(writeQueue) > 0 {
-		emailInjest.WriteMessages(ctx, writeQueue...)
+		if err := emailInjest.WriteMessages(ctx, writeQueue...); err != nil {
+			log.Error().
+				Ctx(ctx).
+				Err(err).
+				Msg("Failed to write Bootstrap Messages to Kafka (2)")
+			return err
+		}
 	}
 
-	_, err = globals.Db().ExecContext(ctx, `
-	INSERT INTO gmail_sync_status (
-		user_id,
-		history_id,
+	_, err = globals.Db().Exec(ctx, `
+	INSERT INTO GmailSyncStatus (
+		userId,
+		historyId,
 		until,
-		last_sync_time
-	) VALUES (?, ?, ?, ?)
-	ON CONFLICT(user_id) DO UPDATE SET
-		history_id = excluded.history_id,
-		until = MIN(excluded.until, until),
-		last_sync_time = MAX(excluded.last_sync_time, until)
+		lastSyncTime
+	) VALUES ($1, $2, $3, $4)
+	ON CONFLICT(userId) DO UPDATE SET
+		historyId = EXCLUDED.historyId,
+		until = LEAST(EXCLUDED.until, GmailSyncStatus.until),
+		lastSyncTime = GREATEST(EXCLUDED.lastSyncTime, GmailSyncStatus.lastSyncTime)
 		`,
 		g.userId,
 		lastHistoryId,
-		time.Now().Unix(),
-		time.Now().Format(time.RFC3339),
+		time.Now().UTC(),
+		time.Now().UTC(),
 	)
 	if err != nil {
-		log.Println("Failed to save sync status", err)
+		log.Error().
+			Ctx(ctx).
+			Err(err).
+			Msg("Failed to save sync status in bootstrap")
 	}
 
-	log.Println("done bootstrapping")
 	return nil
 }
 
 func (g *googleClient) FetchGmailEntry(ctx context.Context, id string) (*data.GmailEntry, *data.GmailEntryBody, error) {
 
-	log.Println("loading message", id)
+	log.Info().
+		Ctx(ctx).
+		Str("messageId", id).
+		Msg("FetchGmailEntry")
+
 	msg, err := g.gmail.Users.Messages.
 		Get("me", id).
 		Format("full").
@@ -231,7 +265,11 @@ func (g *googleClient) FetchGmailEntry(ctx context.Context, id string) (*data.Gm
 		if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == 404 {
 			return nil, nil, gErr
 		}
-		log.Println("Failed to load message", err)
+		log.Error().
+			Ctx(ctx).
+			Str("messageId", id).
+			Err(err).
+			Msg("Failed to load message")
 		return nil, nil, err
 	}
 	headers := headerMap(msg.Payload.Headers)
@@ -420,10 +458,11 @@ func decodeB64URL(s string) string {
 		if err2 == nil {
 			return string(b2)
 		}
-		log.Printf("decode body failed: %v and %v", err, err2)
-		log.Println("----")
-		log.Println(s[0:256])
-		log.Println("----")
+		log.Warn().
+			Err(err).
+			Err(err2).
+			Str("bodySnippet", s[0:256]).
+			Msg("decode body failed")
 		return ""
 	}
 	return string(b)

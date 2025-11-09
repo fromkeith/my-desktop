@@ -4,14 +4,17 @@ import (
 	"fromkeith/my-desktop-server/globals"
 	"fromkeith/my-desktop-server/gmail/data"
 	"io"
-	"log"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	jsoniter "github.com/json-iterator/go"
+	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func PullStream(r *gin.Context) {
 	accountId := r.GetString("accountId")
@@ -32,12 +35,14 @@ func PullStream(r *gin.Context) {
 	defer stream.Close(r)
 
 	r.Stream(func(w io.Writer) bool {
-		log.Println("stream start")
 		if stream.Next(r.Request.Context()) {
 			var email data.GmailEntry
 			var ev bson.M
-			if err := stream.Decode(ev); err != nil {
-				log.Println("failed to unmarshal email", err)
+			if err := stream.Decode(&ev); err != nil {
+				log.Error().
+					Ctx(r).
+					Err(err).
+					Msg("failed to unmarshal email doc in stream")
 				return false
 			}
 			full, ok := ev["fullDocument"]
@@ -46,15 +51,19 @@ func PullStream(r *gin.Context) {
 			}
 			raw, _ := bson.Marshal(full)
 			if err := bson.Unmarshal(raw, &email); err != nil {
-				log.Println("failed to unmarshal email", err)
+				log.Error().
+					Ctx(r).
+					Err(err).
+					Any("full", full).
+					Msg("failed to unmarshal email in stream")
 				return true
 			}
 
-			log.Println("Sent sync message")
-			r.SSEvent("message", PullMessagesResponse{
+			payload, _ := json.Marshal(PullMessagesResponse{
 				Messages:   []data.GmailEntry{email},
 				Checkpoint: SyncCheckpoint{MessageId: email.MessageId, UpdatedAt: email.UpdatedAt.Format(time.RFC3339Nano)},
 			})
+			r.SSEvent("message", payload)
 			// we return so gin can flush, we will get called again
 			return true
 		}
@@ -63,7 +72,10 @@ func PullStream(r *gin.Context) {
 			if err == r.Request.Context().Err() {
 				return false
 			}
-			log.Println("stream failed!", err)
+			log.Error().
+				Ctx(r).
+				Err(err).
+				Msg("stream failed")
 		}
 		return false
 	})

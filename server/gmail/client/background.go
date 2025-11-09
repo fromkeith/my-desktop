@@ -3,8 +3,10 @@ package client
 import (
 	"context"
 	"fromkeith/my-desktop-server/globals"
-	"log"
 	"time"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -72,18 +74,24 @@ func flush(ctx context.Context, writeWait map[string]refreshReq) {
 	for accountId, req := range writeWait {
 		var gmailSyncToken string
 		if req.gmail {
-			row := globals.Db().QueryRow(`
-			SELECT last_sync_time, history_id
-			FROM user_oauth_accounts u
-			INNER JOIN gmail_sync_status g ON g.user_id = u.user_id
-			WHERE u.account_id = ?
+			row := globals.Db().QueryRow(ctx, `
+			SELECT lastSyncTime, historyId
+			FROM UserOauthAccounts u
+			INNER JOIN GmailSyncStatus g ON g.userId = u.userId
+			WHERE u.accountId = $1
 			LIMIT 1
 				`, accountId)
 			var lastUpdate string
 			err := row.Scan(&lastUpdate, &gmailSyncToken)
 			if err != nil {
-				log.Println("error scanning gmail sync status:", err)
-				continue
+				if err != pgx.ErrNoRows {
+					log.Error().
+						Ctx(ctx).
+						Err(err).
+						Msg("Failed to scan gmail sync status")
+					continue
+				}
+
 			}
 			if lastUpdate != "" {
 				t, err := time.Parse(time.RFC3339, lastUpdate)
@@ -97,17 +105,22 @@ func flush(ctx context.Context, writeWait map[string]refreshReq) {
 		}
 		var contactsSyncToken string
 		if req.contacts {
-			row := globals.Db().QueryRow(`
-			SELECT last_sync_time, next_sync_token
-			FROM user_oauth_accounts u
-			INNER JOIN people_sync_status g ON g.user_id = u.user_id
-			WHERE u.account_id = ?
+			row := globals.Db().QueryRow(ctx, `
+			SELECT lastSyncTime, nextSyncToken
+			FROM UserOauthAccounts u
+			INNER JOIN PeopleSyncStatus g ON g.userId = u.userId
+			WHERE u.accountId = $1
 			LIMIT 1
 				`, accountId)
 			var lastUpdate string
 			err := row.Scan(&lastUpdate, &contactsSyncToken)
 			if err != nil {
-				log.Println("error scanning people sync status:", err)
+				if err != pgx.ErrNoRows {
+					log.Error().
+						Ctx(ctx).
+						Err(err).
+						Msg("error scanning people sync status")
+				}
 				continue
 			}
 			if lastUpdate != "" {
@@ -120,15 +133,20 @@ func flush(ctx context.Context, writeWait map[string]refreshReq) {
 				}
 			}
 		}
-		log.Println("syncing ", accountId, "gmail:", req.gmail, "contacts:", req.contacts)
 		// too soon
 		if !req.contacts && !req.gmail {
 			continue
 		}
-		client, err := GmailClient(ctx, accountId, false)
+		client, err := GmailClient(ctx, accountId)
 		if err != nil {
 			continue
 		}
+
+		log.Info().
+			Ctx(ctx).
+			Bool("gmail", req.gmail).
+			Bool("contacts", req.contacts).
+			Msg("syncing account")
 
 		if req.gmail {
 			client.SyncEmail(ctx, gmailSyncToken)

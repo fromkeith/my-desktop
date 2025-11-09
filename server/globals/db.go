@@ -2,30 +2,32 @@ package globals
 
 import (
 	"context"
-	"database/sql"
 	"log"
 	"os"
+	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 var (
-	db      *sql.DB
+	db      *pgxpool.Pool
 	mongoDb *mongo.Database
 )
 
-func Open() {
+func Db() *pgxpool.Pool {
+	if db != nil {
+		return db
+	}
 	var err error
-	db, err = sql.Open("sqlite3", "./desktop.sqlite3")
+	conn, err := pgxpool.New(context.Background(), os.Getenv("POSTGRES_URI"))
 	if err != nil {
 		log.Fatal(err)
 	}
-}
-
-func Db() *sql.DB {
+	db = conn
 	return db
 }
 
@@ -55,4 +57,31 @@ func DocDb() *mongo.Database {
 	}
 	mongoDb = client.Database(os.Getenv("MONGODB_DB"))
 	return mongoDb
+}
+
+// creates a lock in postgres to prevent concurrent access to the same token
+// set key to something stable, like accountId+userId
+func PostgresLock(ctx context.Context, conn *pgx.Conn, key int64, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	// Attempt non-blocking first (fast path)
+	var got bool
+	err := conn.QueryRow(ctx, `SELECT pg_try_advisory_lock($1)`, key).Scan(&got)
+	if err != nil {
+		return err
+	}
+	if got {
+		return nil
+	}
+	// Block (with context timeout) until lock is available
+	// pg_advisory_lock is blocking; we rely on the context timeout
+	_, err = conn.Exec(ctx, `SELECT pg_advisory_lock($1)`, key)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func PostgresUnlock(ctx context.Context, conn *pgx.Conn, key int64) {
+	_, _ = conn.Exec(ctx, `SELECT pg_advisory_unlock($1)`, key)
 }

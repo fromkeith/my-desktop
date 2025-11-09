@@ -4,9 +4,9 @@ import (
 	"context"
 	"fromkeith/my-desktop-server/globals"
 	"fromkeith/my-desktop-server/gmail/data"
-	"log"
 	"time"
 
+	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -41,6 +41,10 @@ func (g *googleClient) loadPeople(ctx context.Context, syncToken string) error {
 		}
 		res, err := req.Do()
 		if err != nil {
+			log.Error().
+				Ctx(ctx).
+				Err(err).
+				Msg("Failed to fetch people list")
 			return err
 		}
 
@@ -61,7 +65,6 @@ func (g *googleClient) loadPeople(ctx context.Context, syncToken string) error {
 			delete(doc, "updatedAt")
 			delete(doc, "revisionCount")
 			delete(doc, "createdAt") // let $setOnInsert handle this
-			log.Println("person", doc)
 			batchWriteModels = append(batchWriteModels, mongo.NewUpdateOneModel().
 				SetFilter(bson.M{"_id": p.ToDocumentId()}).
 				SetUpdate(bson.M{
@@ -84,22 +87,25 @@ func (g *googleClient) loadPeople(ctx context.Context, syncToken string) error {
 			continue
 		}
 
-		_, err = globals.Db().ExecContext(ctx, `
-		INSERT INTO people_sync_status (
-			user_id,
-			next_sync_token,
-			last_sync_time
-		) VALUES (?, ?, ?)
-		ON CONFLICT(user_id) DO UPDATE SET
-			next_sync_token = excluded.next_sync_token,
-			last_sync_time = MAX(excluded.last_sync_time, last_sync_time)
+		_, err = globals.Db().Exec(ctx, `
+		INSERT INTO PeopleSyncStatus (
+			userId,
+			nextSyncToken,
+			lastSyncTime
+		) VALUES ($1, $2, $3)
+		ON CONFLICT(userId) DO UPDATE SET
+			nextSyncToken = EXCLUDED.nextSyncToken,
+			lastSyncTime = GREATEST(EXCLUDED.lastSyncTime, PeopleSyncStatus.lastSyncTime)
 			`,
 			g.userId,
 			res.NextSyncToken,
-			time.Now().Format(time.RFC3339),
+			time.Now().UTC(),
 		)
 		if err != nil {
-			log.Println("Failed to save sync status", err)
+			log.Error().
+				Ctx(ctx).
+				Err(err).
+				Msg("Failed to save sync status for people")
 		}
 		return nil
 	}

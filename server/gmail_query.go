@@ -2,15 +2,13 @@ package main
 
 import (
 	"context"
-	"database/sql"
-	"encoding/json"
 	"fromkeith/my-desktop-server/globals"
 	"fromkeith/my-desktop-server/gmail/client"
 	"fromkeith/my-desktop-server/gmail/data"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -39,18 +37,32 @@ func ListInbox(r *gin.Context) {
 			opts,
 		)
 	if err != nil {
-		log.Println("doc failed", err)
+		log.Error().
+			Ctx(r).
+			Err(err).
+			Msg("failed to list Messages from mongo")
 		r.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to query collection"})
 		return
 	}
 	res := make([]data.GmailEntry, 0, 100)
 	if err = cursor.All(r, &res); err != nil {
-		log.Println("doc failed", err)
+		log.Error().
+			Ctx(r).
+			Err(err).
+			Msg("failed to list all cursor for Messages")
 		r.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to get docs"})
 		return
 	}
 	if len(res) == 0 {
-		client, _ := client.GmailClientFor(r, true)
+		client, err := client.GmailClientFor(r, true)
+		if err != nil {
+			log.Error().
+				Ctx(r).
+				Err(err).
+				Msg("failed to get GmailClient when wanting ondemand bootstrap")
+			r.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Failed to get gmail client"})
+			return
+		}
 		go client.Bootstrap(context.Background())
 		r.JSON(http.StatusOK, []data.GmailEntry{})
 		return
@@ -59,48 +71,17 @@ func ListInbox(r *gin.Context) {
 	r.JSON(http.StatusOK, res)
 }
 
-func unmarshalEmailEntry(rows *sql.Rows) *data.GmailEntry {
-	var entry data.GmailEntry
-	var labelsJson, headersJson, senderJson, receiverJson, replyToJson, additionalReceiversJson []byte
-	err := rows.Scan(
-		&entry.UserId,
-		&entry.MessageId,
-		&entry.ThreadId,
-		&labelsJson,
-		&entry.Subject,
-		&entry.Snippet,
-		&entry.HistoryId,
-		&entry.InternalDate,
-		&headersJson,
-		&senderJson,
-		&receiverJson,
-		&entry.ReceivedAt,
-		&replyToJson,
-		&additionalReceiversJson,
-	)
-	if err != nil {
-		log.Println("failed to unmarshal gmail entry", err)
-		return nil
-	}
-	json.Unmarshal((labelsJson), &entry.Labels)
-	json.Unmarshal((headersJson), &entry.Headers)
-	json.Unmarshal((senderJson), &entry.Sender)
-	json.Unmarshal((receiverJson), &entry.Receiver)
-	json.Unmarshal((replyToJson), &entry.ReplyTo)
-	json.Unmarshal((additionalReceiversJson), &entry.AdditionalReceivers)
-	return &entry
-}
-
 func bootstrap(r *gin.Context) {
-	log.Println("Need to bookstrap")
 	client, err := client.GmailClientFor(r, true)
 	if err != nil {
-		log.Println(err)
+		log.Error().
+			Ctx(r).
+			Err(err).
+			Msg("failed to get GmailClient when wanting ondemand bootstrap")
 		r.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Failed to get gmail client"})
 		return
 	}
 	go client.Bootstrap(context.Background())
-	// r.JSON(http.StatusOK, make([]string, 0))
 }
 
 // ListThread godoc
@@ -128,13 +109,21 @@ func ListThread(r *gin.Context) {
 			opts,
 		)
 	if err != nil {
-		log.Println("doc failed", err)
+		log.Error().
+			Ctx(r).
+			Err(err).
+			Str("threadId", threadId).
+			Msg("failed to get thread for Messages from mongo")
 		r.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to query collection"})
 		return
 	}
 	res := make([]data.GmailEntry, 0, 100)
 	if err = cursor.All(r, &res); err != nil {
-		log.Println("doc failed", err)
+		log.Error().
+			Ctx(r).
+			Err(err).
+			Str("threadId", threadId).
+			Msg("failed to list all cursor for Messages Thread")
 		r.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to get docs"})
 		return
 	}
@@ -169,7 +158,11 @@ func GetMessage(r *gin.Context) {
 		)
 	var entry data.GmailEntry
 	if err := result.Decode(&entry); err != nil {
-		log.Println("doc read failed", err)
+		log.Error().
+			Ctx(r).
+			Err(err).
+			Str("messageId", messageId).
+			Msg("failed to get Message from mongo")
 		r.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to query collection"})
 		return
 	}
@@ -189,14 +182,22 @@ func GetMessageContents(r *gin.Context) {
 	if forceRefresh == "1" {
 		client, err := client.GmailClientFor(r, true)
 		if err != nil {
-			log.Println(err)
+			log.Error().
+				Ctx(r).
+				Err(err).
+				Str("messageId", messageId).
+				Msg("failed to get client for forced body load")
 			r.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Failed to get gmail client"})
 			return
 		}
 		// wait, then pull from db
 		entry, body, err := client.FetchGmailEntry(r, messageId)
 		if err != nil {
-			log.Println(err)
+			log.Error().
+				Ctx(r).
+				Err(err).
+				Str("messageId", messageId).
+				Msg("failed to fetch gmail entry")
 			r.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Failed to get gmail entry"})
 			return
 		}
@@ -219,7 +220,11 @@ func GetMessageContents(r *gin.Context) {
 		)
 	var entry data.GmailEntryBody
 	if err := result.Decode(&entry); err != nil {
-		log.Println("doc read failed", err, "docId", data.ToDocumentId(r.GetString("accountId"), messageId))
+		log.Error().
+			Ctx(r).
+			Err(err).
+			Str("messageId", messageId).
+			Msg("failed to decode gmail body")
 		r.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to query collection"})
 		return
 	}

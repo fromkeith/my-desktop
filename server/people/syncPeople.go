@@ -3,10 +3,10 @@ package people
 import (
 	"fmt"
 	"fromkeith/my-desktop-server/gmail/client"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 func SyncPeople(r *gin.Context) {
@@ -17,7 +17,10 @@ func SyncPeople(r *gin.Context) {
 	}
 	err = client.BootstrapPeople(r)
 	if err != nil {
-		log.Println("failed to bootstrap people:", err)
+		log.Error().
+			Ctx(r).
+			Err(err).
+			Msg("failed to bootstrap people")
 		r.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to bootstrap people: %v", err)})
 		return
 	}

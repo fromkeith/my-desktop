@@ -2,13 +2,11 @@ package client
 
 import (
 	"context"
-	"database/sql"
 	"encoding/base64"
 	"fromkeith/my-desktop-server/auth"
 	"fromkeith/my-desktop-server/globals"
 	oauth_basic "fromkeith/my-desktop-server/oauth"
 	"fromkeith/my-desktop-server/utils"
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -16,6 +14,8 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/gmail/v1"
@@ -39,7 +39,11 @@ func SetupGoogle() {
 		people.DirectoryReadonlyScope,
 	)
 	if err != nil {
-		log.Fatalf("Unable to parse client secret to config: %v", err)
+		log.Fatal().
+			Stack().
+			Err(err).
+			Msg("Unable to parse client secret to config")
+
 	}
 	oidcProvider, err = oidc.NewProvider(context.Background(), "https://accounts.google.com")
 	if err != nil {
@@ -61,7 +65,10 @@ func HandleAuthStart(r *gin.Context) {
 		"nonce":            nonce,
 	})
 	if err != nil {
-		log.Println(err)
+		log.Error().
+			Ctx(r).
+			Err(err).
+			Msg("failed to save new auth token session")
 		r.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "failed to save"})
 		return
 	}
@@ -116,31 +123,41 @@ func HandleCallback(r *gin.Context) {
 		r.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "expired"})
 		return
 	}
-	log.Println("exchange code: " + code)
-	log.Println("verifier: " + verifier)
+	log.Info().
+		Ctx(r).
+		Str("exchange_code", code).
+		Str("verifier", verifier).
+		Msg("handling oauth callback")
 	tok, err := oauthConfig.Exchange(r, code, oauth2.SetAuthURLParam("code_verifier", verifier))
 	if err != nil {
-		log.Println(err)
+		log.Error().
+			Ctx(r).
+			Err(err).
+			Msg("failed to change code")
 		r.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "exchange failed"})
 		return
 	}
-	log.Println("token")
-	log.Println(tok)
 	rawIdToken, _ := tok.Extra("id_token").(string)
 	if rawIdToken == "" {
-		log.Println("no id_token")
 		r.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "missing id_token"})
 		return
 	}
 
 	idt, err := oidcVerifier.Verify(r, rawIdToken)
 	if err != nil {
-		print("oidc failed")
+		log.Error().
+			Ctx(r).
+			Err(err).
+			Msg("oidc failed")
 		r.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "verify id_token: " + err.Error()})
 		return
 	}
 	var claims googleOidcClaims
 	if err := idt.Claims(&claims); err != nil {
+		log.Error().
+			Ctx(r).
+			Err(err).
+			Msg("coulld not get oidc claims")
 		r.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Bad claims: " + err.Error()})
 		return
 	}
@@ -152,27 +169,33 @@ func HandleCallback(r *gin.Context) {
 	if existingAccountId == "" {
 		assignAuth = true
 
-		row := globals.Db().QueryRowContext(r, `
-			SELECT u.account_id
-			FROM user_oauth_accounts u
-			WHERE u.user_id = ?
+		row := globals.Db().QueryRow(r, `
+			SELECT u.accountId
+			FROM UserOauthAccounts u
+			WHERE u.userId = $1
 			`,
 			claims.Sub,
 		)
 		// failed to get existing account... create a new one?
 		if err := row.Scan(&existingAccountId); err != nil {
 
-			if err == sql.ErrNoRows {
+			if err == pgx.ErrNoRows {
 				existingAccountId = "acct_" + uuid.New().String()
 				isNewUser = true
 				err := oauth_basic.CreateAccount(r, existingAccountId)
 				if err != nil {
-					log.Println(err)
+					log.Error().
+						Ctx(r).
+						Err(err).
+						Msg("failed to create an account")
 					r.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to create account"})
 					return
 				}
 			} else {
-				log.Println(err)
+				log.Error().
+					Ctx(r).
+					Err(err).
+					Msg("Error trying to get related existing account")
 				r.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to save token"})
 				return
 			}
@@ -189,7 +212,11 @@ func HandleCallback(r *gin.Context) {
 		Scope:        "", // optional: persist actual granted scope string
 	}
 	if err := SaveGmailTokenRecord(r, existingAccountId, rec); err != nil {
-		log.Println(err)
+		log.Error().
+			Ctx(r).
+			Str("existingAccountId", existingAccountId).
+			Err(err).
+			Msg("failed to change save gmail token record")
 		r.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to save token"})
 		return
 	}
@@ -200,16 +227,28 @@ func HandleCallback(r *gin.Context) {
 		claims.Subject = existingAccountId
 		tokenString, err := auth.CreateToken(claims)
 		if err != nil {
-			log.Println(err)
+			log.Error().
+				Ctx(r).
+				Str("existingAccountId", existingAccountId).
+				Err(err).
+				Msg("failed to create auth token after signin up/in")
 			r.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "token failed to be created"})
 			return
 		}
 		extraQuery = "?auth=" + tokenString
 
 		if isNewUser {
-			bkg := context.Background()
-			client, _ := GmailClient(bkg, existingAccountId, true)
-			go client.Bootstrap(bkg)
+			bkg := context.WithValue(context.Background(), "accountId", existingAccountId)
+			client, err := GmailClient(bkg, existingAccountId)
+			if err != nil {
+				log.Error().
+					Ctx(r).
+					Str("existingAccountId", existingAccountId).
+					Err(err).
+					Msg("failed to get gmail client for new user")
+			} else {
+				go client.Bootstrap(bkg)
+			}
 		}
 	}
 	// Done — redirect back to your app

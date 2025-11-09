@@ -30,6 +30,7 @@ func main() {
 
 	client.SetupGoogle()
 	bkg := context.Background()
+
 	go data.StartWriter(bkg)
 	go data.StartBodyWriter(bkg)
 	go client.StartBackgroundRefresher(bkg)
@@ -39,8 +40,8 @@ func main() {
 	// Create a Gin router with default middleware (logger and recovery)
 	r := gin.Default()
 
-	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
+	r.Use(middleware.RequestId())
 	r.Use(middleware.AuthTokenExtract())
 
 	r.GET("/api/gmail/start", client.HandleAuthStart)

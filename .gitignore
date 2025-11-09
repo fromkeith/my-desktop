@@ -31,3 +31,4 @@ dist-ssr
 src/lib/models/server.ts
 server/.mongodb/
 server/.kafka-data/
+server/.postgres-data/

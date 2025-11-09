@@ -5,5 +5,5 @@ import (
 )
 
 func init() {
-	Open()
+	Db() // connect to postgress
 }

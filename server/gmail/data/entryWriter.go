@@ -3,9 +3,9 @@ package data
 import (
 	"context"
 	"fromkeith/my-desktop-server/globals"
-	"log"
 	"time"
 
+	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -64,7 +64,10 @@ func StartWriter(ctx context.Context) {
 			writeWait = append(writeWait, entry)
 			if len(writeWait) == 100 {
 				if err := BulkWriteEmails(ctx, writeWait); err != nil {
-					log.Printf("error writing entries: %v", err)
+					log.Error().
+						Ctx(ctx).
+						Err(err).
+						Msg("error writing entries")
 				}
 				writeWait = writeWait[:0]
 			}
@@ -72,17 +75,26 @@ func StartWriter(ctx context.Context) {
 			modifyWait = append(modifyWait, modifyEntry)
 			if len(modifyWait) == 100 {
 				if err := bulkModifyEmails(ctx, modifyWait); err != nil {
-					log.Printf("error modifying entries: %v", err)
+					log.Error().
+						Ctx(ctx).
+						Err(err).
+						Msg("error modifying entries")
 				}
 				modifyWait = modifyWait[:0]
 			}
 		case <-time.After(5 * time.Second):
 			if err := BulkWriteEmails(ctx, writeWait); err != nil {
-				log.Printf("error writing entries: %v", err)
+				log.Error().
+					Ctx(ctx).
+					Err(err).
+					Msg("error writing entries")
 			}
 			writeWait = writeWait[:0]
 			if err := bulkModifyEmails(ctx, modifyWait); err != nil {
-				log.Printf("error modifying entries: %v", err)
+				log.Error().
+					Ctx(ctx).
+					Err(err).
+					Msg("error modifying entries")
 			}
 			modifyWait = modifyWait[:0]
 		case <-ctx.Done():
@@ -207,13 +219,19 @@ func StartBodyWriter(ctx context.Context) {
 			writeWait = append(writeWait, entry)
 			if len(writeWait) == 100 {
 				if err := BulkWriteEmailBodies(ctx, writeWait); err != nil {
-					log.Printf("error writing entries: %v", err)
+					log.Error().
+						Ctx(ctx).
+						Err(err).
+						Msg("error writing entries (bodies)")
 				}
 				writeWait = writeWait[:0]
 			}
 		case <-time.After(5 * time.Second):
 			if err := BulkWriteEmailBodies(ctx, writeWait); err != nil {
-				log.Printf("error writing entries: %v", err)
+				log.Error().
+					Ctx(ctx).
+					Err(err).
+					Msg("error writing entries (bodies)")
 			}
 			writeWait = writeWait[:0]
 		case <-ctx.Done():
