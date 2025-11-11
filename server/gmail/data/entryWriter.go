@@ -274,3 +274,36 @@ func BulkWriteEmailBodies(ctx context.Context, entries []GmailEntryBody) error {
 	}
 	return nil
 }
+
+func BulkWriteEmailSummaries(ctx context.Context, entries []EmailSummaryEmbedding) error {
+	if len(entries) == 0 {
+		return nil
+	}
+	// bulk writes the entries to mongoDB
+	// updates/writes over existing entries.
+	batchWriteModels := make([]mongo.WriteModel, 0, len(entries))
+	for _, entry := range entries {
+		// if updating.. needs to increment the version in the database
+		doc := bson.M{}
+		b, _ := bson.Marshal(entry)
+		_ = bson.Unmarshal(b, &doc)
+		delete(doc, "updatedAt")
+		delete(doc, "createdAt") // let $setOnInsert handle this
+		batchWriteModels = append(batchWriteModels, mongo.NewUpdateOneModel().
+			SetFilter(bson.M{"_id": entry.ToDocumentId()}).
+			SetUpdate(bson.M{
+				"$set":         doc,
+				"$currentDate": bson.M{"updatedAt": true},
+				"$setOnInsert": bson.M{
+					"createdAt": time.Now(),
+				},
+			}).
+			SetUpsert(true),
+		)
+	}
+	col := globals.DocDb().Collection("MessageSummaries")
+	if _, err := col.BulkWrite(ctx, batchWriteModels); err != nil {
+		return err
+	}
+	return nil
+}

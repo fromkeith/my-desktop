@@ -2,13 +2,14 @@ package globals
 
 import (
 	"context"
-	"log"
+
 	"os"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -25,7 +26,7 @@ func Db() *pgxpool.Pool {
 	var err error
 	conn, err := pgxpool.New(context.Background(), os.Getenv("POSTGRES_URI"))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Stack().Err(err)
 	}
 	db = conn
 	return db
@@ -44,6 +45,7 @@ func CloseAll() {
 		kafkaConn.Close()
 		kafkaConn = nil
 	}
+	closeLogger()
 }
 
 func DocDb() *mongo.Database {
@@ -53,7 +55,7 @@ func DocDb() *mongo.Database {
 	uri := os.Getenv("MONGODB_URI")
 	client, err := mongo.Connect(options.Client().ApplyURI(uri))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Stack().Err(err).Msg("Failed to connect to MongoDB")
 	}
 	mongoDb = client.Database(os.Getenv("MONGODB_DB"))
 	return mongoDb

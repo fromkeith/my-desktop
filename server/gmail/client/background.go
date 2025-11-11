@@ -81,7 +81,7 @@ func flush(ctx context.Context, writeWait map[string]refreshReq) {
 			WHERE u.accountId = $1
 			LIMIT 1
 				`, accountId)
-			var lastUpdate string
+			var lastUpdate *time.Time
 			err := row.Scan(&lastUpdate, &gmailSyncToken)
 			if err != nil {
 				if err != pgx.ErrNoRows {
@@ -93,13 +93,10 @@ func flush(ctx context.Context, writeWait map[string]refreshReq) {
 				}
 
 			}
-			if lastUpdate != "" {
-				t, err := time.Parse(time.RFC3339, lastUpdate)
-				if err == nil {
-					// too soon, don't update
-					if t.After(nowMinus10) {
-						req.gmail = false
-					}
+			if lastUpdate != nil && lastUpdate.Unix() > 0 {
+				// too soon, don't update
+				if lastUpdate.After(nowMinus10) {
+					req.gmail = false
 				}
 			}
 		}
@@ -112,7 +109,7 @@ func flush(ctx context.Context, writeWait map[string]refreshReq) {
 			WHERE u.accountId = $1
 			LIMIT 1
 				`, accountId)
-			var lastUpdate string
+			var lastUpdate *time.Time
 			err := row.Scan(&lastUpdate, &contactsSyncToken)
 			if err != nil {
 				if err != pgx.ErrNoRows {
@@ -123,13 +120,10 @@ func flush(ctx context.Context, writeWait map[string]refreshReq) {
 				}
 				continue
 			}
-			if lastUpdate != "" {
-				t, err := time.Parse(time.RFC3339, lastUpdate)
-				if err == nil {
-					// too soon, don't update
-					if t.After(nowMinus10) {
-						req.contacts = false
-					}
+			if lastUpdate != nil && lastUpdate.Unix() > 0 {
+				// too soon, don't update
+				if lastUpdate.After(nowMinus10) {
+					req.contacts = false
 				}
 			}
 		}

@@ -28,7 +28,7 @@ var (
 	oidcVerifier *oidc.IDTokenVerifier
 )
 
-func SetupGoogle() {
+func init() {
 	creds := os.Getenv("GOOGLE_CREDENTIALS")
 	var err error
 	oauthConfig, err = google.ConfigFromJSON([]byte(creds), gmail.GmailReadonlyScope,

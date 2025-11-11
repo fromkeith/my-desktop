@@ -3,7 +3,7 @@
 const config = {
     mongodb: {
         // TODO Change (or review) the url to your MongoDB:
-        url: "mongodb://user:pass@localhost:27017",
+        url: "mongodb://devbox.local:27017?replicaSet=rs0",
 
         // TODO Change this to your database name:
         databaseName: "MyDesktop",

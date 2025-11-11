@@ -10,6 +10,8 @@ import (
 	"fromkeith/my-desktop-server/middleware"
 	"fromkeith/my-desktop-server/people"
 
+	"github.com/rs/zerolog/log"
+
 	// for swagger
 	_ "fromkeith/my-desktop-server/docs"
 
@@ -25,10 +27,8 @@ import (
 // @BasePath  /api
 func main() {
 	globals.SetupJsonEncoding()
-
 	defer globals.CloseAll()
 
-	client.SetupGoogle()
 	bkg := context.Background()
 
 	go data.StartWriter(bkg)
@@ -38,6 +38,15 @@ func main() {
 	defer bkg.Done()
 
 	// Create a Gin router with default middleware (logger and recovery)
+	globals.HookGin()
+	gin.DebugPrintRouteFunc = func(httpMethod, absolutePath, handlerName string, nuHandlers int) {
+		log.Debug().
+			Str("method", httpMethod).
+			Str("path", absolutePath).
+			Str("handler", handlerName).
+			Int("handlers", nuHandlers).
+			Msg("endpoint")
+	}
 	r := gin.Default()
 
 	r.Use(gin.Recovery())
@@ -55,6 +64,8 @@ func main() {
 	r.GET("/api/messages/pull", messages.PullMessage)
 	r.GET("/api/messages/push", messages.PushMessage)
 	r.GET("/api/messages/pullStream", middleware.StreamHeaders(), messages.PullStream)
+	// THIS IS A DEBUG ENDPOINT
+	r.POST("/api/message/:messageId/redo/:userId", messages.ReInjest)
 
 	r.GET("/api/people/sync", people.SyncPeople)
 	r.GET("/api/people/pull", people.PullPeople)

@@ -95,7 +95,11 @@ func main() {
 			data.BulkWriteEmails(ctx, entries)
 			nextStep := make([]kafka.Message, 0, len(entries))
 			for _, entry := range entries {
-				entryBytes, _ := json.Marshal(entry)
+				entryBytes, _ := json.Marshal(data.EmailInjestedPayload{
+					MessageId: entry.MessageId,
+					AccountId: entry.AccountId,
+					Entry:     entry,
+				})
 				nextStep = append(nextStep, kafka.Message{
 					Key:   []byte(entry.AccountId + ";" + entry.MessageId),
 					Value: entryBytes,

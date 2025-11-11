@@ -125,7 +125,7 @@ func (g *googleClient) SyncEmail(ctx context.Context, syncToken string) error {
 		`,
 		g.userId,
 		nextHistoryId,
-		time.Now().Unix(),
+		time.Now().UTC(),
 		time.Now().UTC(),
 	)
 	if err != nil {
@@ -242,6 +242,8 @@ func (g *googleClient) BootstrapEmail(ctx context.Context) error {
 	if err != nil {
 		log.Error().
 			Ctx(ctx).
+			Str("accountId", g.accountId).
+			Str("userId", g.userId).
 			Err(err).
 			Msg("Failed to save sync status in bootstrap")
 	}

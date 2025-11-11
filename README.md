@@ -5,7 +5,14 @@
 Listens on port 8080
 Vite (npm run dev) will automatically proxy any /api call to the server
 
-## Database (Postgres)
+
+## Docker Compose
+
+to your hosts file add:
+> 127.0.0.1 devbox.local
+
+
+### Database (Postgres)
 
 Migrations
 
@@ -15,7 +22,7 @@ Use: https://github.com/amacneil/dbmate
 dbmate -d .\migrations -u postgres://postgres:postgres@localhost:5432/desktop?sslmode=disable up
 ```
 
-## Database (MongoDB)
+### Database (MongoDB)
 
 ```
 docker compose up -d

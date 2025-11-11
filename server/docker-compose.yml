@@ -1,30 +1,65 @@
 services:
-    mongodb:
-        image: mongodb/mongodb-community-server:7.0-ubi8
-        command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    mongod:
+        image: mongodb/mongodb-community-server:8.2-ubi9
+        container_name: mongod-community
+        command: >-
+            mongod
+            --config /etc/mongod.conf
+            --replSet rs0
         ports:
-            - "27017:27017"
+            - 27017:27017
         volumes:
-            - ./.mongodb:/data/db
+            - ./.mongod:/data/db
+            - ./.setup/mongod.conf:/etc/mongod.conf:ro
         healthcheck:
-            test:
-                [
-                    "CMD-SHELL",
-                    "mongosh --eval 'db.adminCommand({ ping: 1 })' || exit 1",
-                ]
+            test: mongosh --quiet --eval "db.adminCommand('ping')" || exit 1
             interval: 5s
-            timeout: 2s
-            retries: 20
+            timeout: 5s
+            retries: 12
             start_period: 10s
-    mongo-init-replica:
-        image: mongodb/mongodb-community-server:7.0-ubi8
+        networks:
+            - mongo-stack
+        extra_hosts:
+            - "devbox.local:host-gateway"
+    mongod-setup:
+        image: mongodb/mongodb-community-server:8.2-ubi9
+        container_name: mongod-setup
         depends_on:
-            mongodb:
-                condition: service_healthy
-        command: >
-            mongosh --host mongodb:27017 --eval
-            'rs.initiate({_id:"rs0", members:[{_id:0, host:"localhost:27017"}]})'
+            - mongod
+        command: bash /setup-replica-set.sh
+        volumes:
+            - ./.setup/setup-replica-set.sh:/setup-replica-set.sh:ro
         restart: "no"
+        networks:
+            - mongo-stack
+        extra_hosts:
+            - "devbox.local:host-gateway"
+
+    mongot:
+        image: mongodb/mongodb-community-search:latest
+        container_name: mongot-community-pupr
+        volumes:
+            - ./.mongot:/data/mongot
+            - ./.setup/mongot.conf:/mongot-community/config.default.yml
+            - ./.setup/pwfile:/tmp/pwfile:ro
+            - ./.setup/mongot-launch.sh:/tmp/launch.sh
+        entrypoint: bash /tmp/launch.sh
+        # secrets:
+        #     - source: mongot_pw
+        #       target: /mongot-community/pwfile
+        #       mode: 0400
+        depends_on:
+            mongod:
+                condition: service_healthy
+            mongod-setup:
+                condition: service_completed_successfully
+        ports:
+            - 27028:27028 # Query server port from config
+            - 9946:9946 # Metrics port from config
+        networks:
+            - mongo-stack
+        extra_hosts:
+            - "devbox.local:host-gateway"
 
     kafka:
         image: confluentinc/cp-kafka:latest
@@ -58,9 +93,10 @@ services:
         ports:
             - "5432:5432"
         volumes:
-            - ./.postgres-data:/var/lib/postgresql/data
-#
-# might need this to get mongo replica state working
-#
-# mongosh "mongodb://localhost:27017/?directConnection=true" --eval "let cfg = rs.conf();cfg.members[0].host = 'localhost:27017';rs.reconfig(cfg, {force:true});"
-#
+            - ./.postgres-data:/var/lib/postgresql
+
+networks:
+    mongo-stack:
+        name: mongo-stack
+# to your hosts file add:
+# 127.0.0.1 devbox.local

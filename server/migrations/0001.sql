@@ -33,7 +33,7 @@ CREATE TABLE UserOauthAccounts (
 
 CREATE TABLE GmailSyncStatus (
     userId varchar NOT NULL PRIMARY KEY,
-    historyId varchar NOT NULL,
+    historyId bigint NOT NULL,
     until timestamp without time zone NOT NULL,
     lastSyncTime timestamp without time zone NOT NULL
 );

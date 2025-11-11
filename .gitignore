@@ -30,5 +30,7 @@ dist-ssr
 # auto generated via: npm run models
 src/lib/models/server.ts
 server/.mongodb/
+server/.mongod/
+server/.mongot/
 server/.kafka-data/
 server/.postgres-data/
