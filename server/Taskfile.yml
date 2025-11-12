@@ -14,6 +14,9 @@ tasks:
     build-gemini:
         cmds:
             - go build ./services/gemini
+    build-tagsAndCats:
+        cmds:
+            - go build ./services/tagsAndCats
 
     run-server:
         deps:
@@ -30,6 +33,11 @@ tasks:
             - build-gemini
         cmds:
             - ./gemini
+    run-tagsAndCats:
+        deps:
+            - build-tagsAndCats
+        cmds:
+            - ./tagsAndCats
 
     migrate-postgres:
         cmds:
@@ -54,3 +62,4 @@ tasks:
             - run-server
             - run-injestor
             - run-gemini
+            - run-tagsAndCats

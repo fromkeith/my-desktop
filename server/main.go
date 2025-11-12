@@ -65,9 +65,10 @@ func main() {
 	r.GET("/api/messages/push", messages.PushMessage)
 	r.GET("/api/messages/pullStream", middleware.StreamHeaders(), messages.PullStream)
 	// THIS IS A DEBUG ENDPOINT
-	r.POST("/api/message/:messageId/redo/:userId", messages.ReInjest)
+	r.POST("/api/messages/:messageId/redo/:userId", messages.ReInjest)
+	r.POST("/api/messages/sync", messages.ForceSyncMessages)
 
-	r.GET("/api/people/sync", people.SyncPeople)
+	r.GET("/api/people/sync", people.ForceSyncPeople)
 	r.GET("/api/people/pull", people.PullPeople)
 
 	// Start server on port 8080 (default)

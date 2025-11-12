@@ -16,6 +16,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/segmentio/kafka-go"
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 	"google.golang.org/genai"
 )
 
@@ -157,6 +158,15 @@ func main() {
 			bodies[i].result = analyzeResult
 		}
 
+		// write the found tags + categories
+		if err := writeTagsAndCategories(ctx, bodies); err != nil {
+			log.Error().
+				Ctx(ctx).
+				Stack().
+				Err(err).
+				Msg("failed to write tags and categories")
+		}
+
 		// create the embeddings and assign them to bodies
 		toSave := make([]data.EmailSummaryEmbedding, 0, len(bodies))
 		if len(bodies) > 0 {
@@ -261,14 +271,14 @@ var responseSchema = map[string]any{
 			"type": "array",
 			"items": map[string]any{
 				"type":        "string",
-				"description": "A category for this email",
+				"description": "A generic category for this email. Must be 1 to 2 words.",
 			},
 		},
 		"Tags": map[string]any{
 			"type": "array",
 			"items": map[string]any{
 				"type":        "string",
-				"description": "A tag for this email",
+				"description": "A tag for this email. Must be 1 word.",
 			},
 		},
 	},
@@ -310,6 +320,7 @@ Return as JSON (Theme, Summary, Categories, Tags)`,
 			Msg("failed to unmarshal analyze result")
 		return nil, err
 	}
+	log.Info().Ctx(ctx).Any("analyzeResult", res).Msg("analyzeResult")
 	return &res, nil
 }
 
@@ -370,4 +381,45 @@ func stripHtml(ctx context.Context, body data.GmailEntryBody) (string, error) {
 	}
 	// empty body.. so be e
 	return "empty body", nil
+}
+
+func writeTagsAndCategories(ctx context.Context, bodies []messageBody) error {
+	tagsAndCategories := make([]mongo.WriteModel, 0, len(bodies))
+	for _, msg := range bodies {
+		if msg.result == nil {
+			continue
+		}
+		// enforce normalization
+		for i, tag := range msg.result.Tags {
+			msg.result.Tags[i] = strings.TrimSpace(strings.ToLower(tag))
+		}
+		for i, cat := range msg.result.Categories {
+			msg.result.Categories[i] = strings.TrimSpace(strings.ToLower(cat))
+		}
+		// add to the message itself
+		addToSet := bson.M{}
+		if len(msg.result.Tags) > 0 {
+			addToSet["tags"] = bson.D{{"$each", msg.result.Tags}}
+		}
+		if len(msg.result.Categories) > 0 {
+			addToSet["categories"] = bson.D{{"$each", msg.result.Categories}}
+		}
+		if len(addToSet) == 0 {
+			continue // nothing to add
+		}
+		tagsAndCategories = append(tagsAndCategories, mongo.NewUpdateOneModel().
+			SetFilter(bson.D{{"_id", msg.entry.ToDocumentId()}}).
+			SetUpdate(bson.M{
+				"$addToSet":    addToSet,
+				"$currentDate": bson.M{"updatedAt": true},
+				"$inc":         bson.M{"revisionCount": 1},
+			}).
+			SetUpsert(false),
+		)
+	}
+	col := globals.DocDb().Collection("Messages")
+	if _, err := col.BulkWrite(ctx, tagsAndCategories); err != nil {
+		return err
+	}
+	return nil
 }

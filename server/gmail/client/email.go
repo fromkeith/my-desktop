@@ -301,6 +301,9 @@ func (g *googleClient) FetchGmailEntry(ctx context.Context, id string) (*data.Gm
 			"bcc": peopleFrom(headers, "bcc"),
 			"cc":  peopleFrom(headers, "cc"),
 		},
+		// set as empty so they atleast exist
+		Tags:       make([]string, 0),
+		Categories: make([]string, 0),
 	}
 
 	text, html, hasAtt, inlineIds := extractBodies(msg.Payload)

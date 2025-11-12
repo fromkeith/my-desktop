@@ -1,4 +1,4 @@
-package people
+package messages
 
 import (
 	"fmt"
@@ -9,19 +9,19 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func ForceSyncPeople(r *gin.Context) {
+func ForceSyncMessages(r *gin.Context) {
 	client, err := client.GmailClientFor(r, true)
 	if err != nil {
 		r.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to get Gmail client: %v", err)})
 		return
 	}
-	err = client.BootstrapPeople(r)
+	err = client.BootstrapEmail(r)
 	if err != nil {
 		log.Error().
 			Ctx(r).
 			Err(err).
-			Msg("failed to bootstrap people")
-		r.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to bootstrap people: %v", err)})
+			Msg("failed to bootstrap messages")
+		r.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to bootstrap messages: %v", err)})
 		return
 	}
 	r.JSON(http.StatusOK, gin.H{})

@@ -14,6 +14,8 @@ import { authHeaderProvider } from "$lib/pods/AuthPod";
 import { toTypedRxJsonSchema, type RxReplicationPullStreamItem } from "rxdb";
 import type { IGmailEntry, IGooglePerson } from "$lib/models";
 import { Subject } from "rxjs";
+import { RxDBMigrationSchemaPlugin } from "rxdb/plugins/migration-schema";
+addRxPlugin(RxDBMigrationSchemaPlugin);
 
 addRxPlugin(RxDBDevModePlugin);
 
@@ -28,7 +30,7 @@ interface ICheckpointPerson {
 }
 
 const messageSchema = {
-    version: 0,
+    version: 1,
     type: "object",
     primaryKey: "messageId",
     properties: {
@@ -49,6 +51,8 @@ const messageSchema = {
         subject: { type: "string" },
         threadId: { type: "string" },
         isDeleted: { type: "boolean" },
+        tags: { type: "array", items: { type: "string" } },
+        categories: { type: "array", items: { type: "string" } },
         /** For Sync + Conflict Resolution */
         updatedAt: { type: "string" },
         userId: { type: "string" },
@@ -135,6 +139,15 @@ export class Database {
         await this.db.addCollections({
             messages: {
                 schema: messageSchema,
+                migrationStrategies: {
+                    1: function (oldDoc: any) {
+                        const newDoc = { ...oldDoc };
+                        // Perform migration logic here
+                        newDoc.tags = [];
+                        newDoc.categories = [];
+                        return newDoc;
+                    },
+                },
             },
             people: {
                 schema: peopleSchema,
