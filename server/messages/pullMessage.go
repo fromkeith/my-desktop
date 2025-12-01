@@ -15,13 +15,23 @@ import (
 type SyncCheckpoint struct {
 	MessageId string `json:"messageId"`
 	UpdatedAt string `json:"updatedAt"`
-}
+} // @name CheckpointMessages
 
 type PullMessagesResponse struct {
 	Messages   []data.GmailEntry `json:"messages"`
 	Checkpoint SyncCheckpoint    `json:"checkpoint"`
-}
+} // @name PullMessagesResponse
 
+// PullMessage godoc
+// @Summary      Get Messages
+// @Description  Sync endpoint to pull all changes to messages for this account.
+// @Tags         email
+// @Produce      json
+// @Param        messageId query string true "messageid"
+// @Param        updatedAt query string true "Last updated time"
+// @Param        limit query int true "Batch size"
+// @Success      200  {object}  PullMessagesResponse
+// @Router       /messages/pull [get]
 func PullMessage(r *gin.Context) {
 	accountId := r.GetString("accountId")
 	messageId := r.Query("messageId")

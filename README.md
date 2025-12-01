@@ -73,7 +73,7 @@ The main server will listen on 8080. However, the front-end (vite) will automati
 ```bash
 cd server
 go install github.com/swaggo/swag/cmd/swag@latest
-swag init --parseVendor --parseDependency
+task swag
 ```
 
 2. Build the client side side Typescript models from the Swagger def.

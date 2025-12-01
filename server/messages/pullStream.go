@@ -16,6 +16,12 @@ import (
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
+// PullStream godoc
+// @Summary      Stream Messages
+// @Description  Sync endpoint to allow for for push from server to client of changes to messages.
+// @Tags         email
+// @Produce      event-stream
+// @Router       /messages/pullStream [get]
 func PullStream(r *gin.Context) {
 	accountId := r.GetString("accountId")
 

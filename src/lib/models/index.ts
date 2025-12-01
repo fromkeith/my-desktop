@@ -7,6 +7,8 @@ export enum WindowType {
     ComposeEmail = "ComposeEmailWindow",
     LoginEmail = "LoginWindow",
     ContactList = "ContactListWindow",
+    CategoryList = "CategoryListWindow",
+    TagList = "TagListWindow",
 }
 
 export enum ComposeType {

@@ -3,6 +3,7 @@
 
     import { windowListProvider } from "$lib/pods/WindowsPod";
     import { isAuthValidProvider } from "$lib/pods/AuthPod";
+    import { WindowType } from "$lib/models";
 
     import EmailListWindow from "$lib/my-components/EmailListWindow.svelte";
     import ComposeEmailWindow from "$lib/my-components/ComposeEmailWindow.svelte";
@@ -13,12 +14,16 @@
     import Progress from "$lib/components/ui/progress/progress.svelte";
     import LoginWindow from "$lib/my-components/LoginWindow.svelte";
     import ContactListWindow from "$lib/my-components/ContactListWindow.svelte";
+    import CategoriesWindow from "$lib/my-components/CategoriesWindow.svelte";
+    import TagsWindow from "$lib/my-components/TagsWindow.svelte";
 
     const registery: Record<string, ConstructorOfATypedSvelteComponent> = {
-        EmailListWindow: EmailListWindow,
-        ComposeEmailWindow: ComposeEmailWindow,
-        EmailContentsWindow: EmailContentsWindow,
-        ContactListWindow: ContactListWindow,
+        [WindowType.EmailList.toString()]: EmailListWindow,
+        [WindowType.ComposeEmail.toString()]: ComposeEmailWindow,
+        [WindowType.EmailContents.toString()]: EmailContentsWindow,
+        [WindowType.ContactList.toString()]: ContactListWindow,
+        [WindowType.CategoryList.toString()]: CategoriesWindow,
+        [WindowType.TagList.toString()]: TagsWindow,
     };
     $: windows = windowListProvider();
     $: isAuthValid = isAuthValidProvider();

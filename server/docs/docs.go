@@ -99,6 +99,148 @@ const docTemplate = `{
                 }
             }
         },
+        "/messages/aggregate/pullCategories": {
+            "get": {
+                "description": "Sync endpoint to pull all changes to categories for this account.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "Get summary of the categories in this account",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "category",
+                        "name": "category",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Last updated time",
+                        "name": "updatedAt",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Batch size",
+                        "name": "limit",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/PullCategoriesResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/messages/aggregate/pullTags": {
+            "get": {
+                "description": "Sync endpoint to pull all changes to tags for this account.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "Get summary of the tags in this account",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tag",
+                        "name": "tag",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Last updated time",
+                        "name": "updatedAt",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Batch size",
+                        "name": "limit",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/PullTagsResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/messages/pull": {
+            "get": {
+                "description": "Sync endpoint to pull all changes to messages for this account.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "Get Messages",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "messageid",
+                        "name": "messageId",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Last updated time",
+                        "name": "updatedAt",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Batch size",
+                        "name": "limit",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/PullMessagesResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/messages/pullStream": {
+            "get": {
+                "description": "Sync endpoint to allow for for push from server to client of changes to messages.",
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "Stream Messages",
+                "responses": {}
+            }
+        },
         "/people/pull": {
             "get": {
                 "description": "Pulls the people database to be local",
@@ -113,7 +255,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/people.PullPeopleResponse"
+                            "$ref": "#/definitions/PullPeopleResponse"
                         }
                     }
                 }
@@ -121,14 +263,78 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "CategoryInfo": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "messageCount": {
+                    "type": "integer"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "CheckpointCategory": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "CheckpointMessages": {
+            "type": "object",
+            "properties": {
+                "messageId": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "CheckpointPerson": {
+            "type": "object",
+            "properties": {
+                "personId": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "CheckpointTag": {
+            "type": "object",
+            "required": [
+                "tag",
+                "updatedAt"
+            ],
+            "properties": {
+                "tag": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
         "GmailEntry": {
             "type": "object",
             "required": [
                 "additionalReceivers",
+                "categories",
                 "createdAt",
                 "headers",
                 "historyId",
                 "internalDate",
+                "isDeleted",
                 "labels",
                 "messageId",
                 "receivedAt",
@@ -137,6 +343,7 @@ const docTemplate = `{
                 "sender",
                 "snippet",
                 "subject",
+                "tags",
                 "threadId",
                 "updatedAt",
                 "userId"
@@ -149,6 +356,12 @@ const docTemplate = `{
                         "items": {
                             "$ref": "#/definitions/PersonInfo"
                         }
+                    }
+                },
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
                     }
                 },
                 "createdAt": {
@@ -164,7 +377,12 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "internalDate": {
+                    "description": "The internal message creation timestamp (epoch ms), which determines ordering in the inbox. For normal SMTP-received email, this represents the time the message was originally accepted by Google, which is more reliable than the Date header. However, for API-migrated mail, it can be configured by client to be based on the Date header.",
                     "type": "integer"
+                },
+                "isDeleted": {
+                    "description": "generated by us",
+                    "type": "boolean"
                 },
                 "labels": {
                     "type": "array",
@@ -176,6 +394,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "receivedAt": {
+                    "description": "probaly use internalDate",
                     "type": "string"
                 },
                 "receiver": {
@@ -198,6 +417,12 @@ const docTemplate = `{
                 },
                 "subject": {
                     "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "threadId": {
                     "type": "string"
@@ -294,6 +519,85 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "PullCategoriesResponse": {
+            "type": "object",
+            "properties": {
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/CategoryInfo"
+                    }
+                },
+                "checkpoint": {
+                    "$ref": "#/definitions/CheckpointCategory"
+                }
+            }
+        },
+        "PullMessagesResponse": {
+            "type": "object",
+            "properties": {
+                "checkpoint": {
+                    "$ref": "#/definitions/CheckpointMessages"
+                },
+                "messages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/GmailEntry"
+                    }
+                }
+            }
+        },
+        "PullPeopleResponse": {
+            "type": "object",
+            "properties": {
+                "checkpoint": {
+                    "$ref": "#/definitions/CheckpointPerson"
+                },
+                "people": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/GooglePerson"
+                    }
+                }
+            }
+        },
+        "PullTagsResponse": {
+            "type": "object",
+            "required": [
+                "categories",
+                "checkpoint"
+            ],
+            "properties": {
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/TagInfo"
+                    }
+                },
+                "checkpoint": {
+                    "$ref": "#/definitions/CheckpointTag"
+                }
+            }
+        },
+        "TagInfo": {
+            "type": "object",
+            "required": [
+                "messageCount",
+                "tag",
+                "updatedAt"
+            ],
+            "properties": {
+                "messageCount": {
+                    "type": "integer"
+                },
+                "tag": {
+                    "type": "string"
+                },
+                "updatedAt": {
                     "type": "string"
                 }
             }
@@ -1404,20 +1708,6 @@ const docTemplate = `{
                 }
             }
         },
-        "people.PullPeopleResponse": {
-            "type": "object",
-            "properties": {
-                "checkpoint": {
-                    "$ref": "#/definitions/people.SyncCheckpoint"
-                },
-                "people": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/GooglePerson"
-                    }
-                }
-            }
-        },
         "people.Relation": {
             "type": "object",
             "properties": {
@@ -1573,17 +1863,6 @@ const docTemplate = `{
                 },
                 "updateTime": {
                     "description": "UpdateTime: Output only. **Only populated in ` + "`" + `person.metadata.sources` + "`" + `.**\nLast update timestamp of this source.",
-                    "type": "string"
-                }
-            }
-        },
-        "people.SyncCheckpoint": {
-            "type": "object",
-            "properties": {
-                "personId": {
-                    "type": "string"
-                },
-                "updatedAt": {
                     "type": "string"
                 }
             }

@@ -57,6 +57,10 @@ tasks:
         cmds:
             - docker-compose down
 
+    swag:
+        cmds:
+            - swag init --parseVendor --parseDependency
+
     run-all:
         deps:
             - run-server

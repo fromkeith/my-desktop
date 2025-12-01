@@ -15,12 +15,12 @@ import (
 type SyncCheckpoint struct {
 	PersonId  string `json:"personId"`
 	UpdatedAt string `json:"updatedAt"`
-}
+} // @name CheckpointPerson
 
 type PullPeopleResponse struct {
 	People     []data.GooglePerson `json:"people"`
 	Checkpoint SyncCheckpoint      `json:"checkpoint"`
-}
+} // @name PullPeopleResponse
 
 // PullPeople godoc
 // @Summary      Pull the people database

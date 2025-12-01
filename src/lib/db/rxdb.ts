@@ -12,22 +12,22 @@ import {
 } from "rxdb/plugins/replication";
 import { authHeaderProvider } from "$lib/pods/AuthPod";
 import { toTypedRxJsonSchema, type RxReplicationPullStreamItem } from "rxdb";
-import type { IGmailEntry, IGooglePerson } from "$lib/models";
+import type {
+    IGmailEntry,
+    IGooglePerson,
+    ICheckpointMessages,
+    ICheckpointPerson,
+    ICheckpointCategory,
+    ICheckpointTag,
+    ICategoryInfo,
+    ITagInfo,
+    IPullCategoriesResponse,
+} from "$lib/models";
 import { Subject } from "rxjs";
 import { RxDBMigrationSchemaPlugin } from "rxdb/plugins/migration-schema";
 addRxPlugin(RxDBMigrationSchemaPlugin);
 
 addRxPlugin(RxDBDevModePlugin);
-
-interface ICheckpoint {
-    messageId: string;
-    updatedAt: string;
-}
-
-interface ICheckpointPerson {
-    personId: string;
-    updatedAt: string;
-}
 
 const messageSchema = {
     version: 1,
@@ -118,13 +118,45 @@ const peopleSchema = {
     required: ["personId"],
 } as const;
 
+const categoriesSchema = {
+    version: 0,
+    type: "object",
+    primaryKey: "category",
+    properties: {
+        category: { type: "string", maxLength: 512 },
+        messageCount: { type: "number" },
+        updatedAt: { type: "string" },
+    },
+    additionalProperties: true,
+    required: ["category", "messageCount", "updatedAt"],
+} as const;
+
+const tagsSchema = {
+    version: 0,
+    type: "object",
+    primaryKey: "tag",
+    properties: {
+        tag: { type: "string", maxLength: 512 },
+        messageCount: { type: "number" },
+        updatedAt: { type: "string" },
+    },
+    additionalProperties: true,
+    required: ["tag", "messageCount", "updatedAt"],
+} as const;
+
 export class Database {
     public db: any;
     private emailReplState:
-        | RxReplicationState<ICheckpoint, IGmailEntry>
+        | RxReplicationState<ICheckpointMessages, IGmailEntry>
         | undefined;
     private peopleReplState:
         | RxReplicationState<ICheckpointPerson, IGooglePerson>
+        | undefined;
+    private categoryReplState:
+        | RxReplicationState<ICheckpointCategory, ICategoryInfo>
+        | undefined;
+    private tagReplState:
+        | RxReplicationState<ICheckpointTag, ITagInfo>
         | undefined;
 
     async init() {
@@ -152,9 +184,15 @@ export class Database {
             people: {
                 schema: peopleSchema,
             },
+            categories: {
+                schema: categoriesSchema,
+            },
+            tags: {
+                schema: tagsSchema,
+            },
         });
         const messagePullStream$ = new Subject<
-            RxReplicationPullStreamItem<ICheckpoint, IGmailEntry>
+            RxReplicationPullStreamItem<ICheckpointMessages, IGmailEntry>
         >();
 
         const auth = await authHeaderProvider().promise;
@@ -169,7 +207,10 @@ export class Database {
                 checkpoint: eventData.checkpoint,
             });
         };
-        this.emailReplState = replicateRxCollection<ICheckpoint, IGmailEntry>({
+        this.emailReplState = replicateRxCollection<
+            ICheckpointMessages,
+            IGmailEntry
+        >({
             collection: this.db.messages,
             replicationIdentifier: "email-rep",
             push: {
@@ -264,6 +305,81 @@ export class Database {
         this.peopleReplState.error$.subscribe((error) => {
             console.error("peopleReplState error:", error);
         });
+
+        this.categoryReplState = replicateRxCollection<
+            ICheckpointCategory,
+            ICategoryInfo
+        >({
+            collection: this.db.categories,
+            replicationIdentifier: "category-rep",
+            push: {
+                async handler(changeRows) {
+                    // noop. server will push, not us
+                    return [];
+                },
+            },
+            pull: {
+                async handler(
+                    checkpointOrNull: Record<string, any> | undefined,
+                    batchSize: number,
+                ) {
+                    const updatedAt =
+                        checkpointOrNull?.updatedAt ??
+                        "2000-01-01T00:00:00.000Z";
+                    const category = checkpointOrNull?.category ?? "";
+                    const response = await fetch(
+                        `/api/messages/aggregate/pullCategories?updatedAt=${updatedAt}&category=${encodeURIComponent(category)}&limit=${batchSize}`,
+                        {
+                            headers: await authHeaderProvider().promise,
+                        },
+                    );
+                    const data = await response.json();
+                    return {
+                        documents: data.categories ?? [],
+                        checkpoint: data.checkpoint,
+                    };
+                },
+            },
+        });
+        this.categoryReplState.error$.subscribe((error) => {
+            console.error("categoryReplState error:", error);
+        });
+
+        this.tagReplState = replicateRxCollection<ICheckpointTag, ITagInfo>({
+            collection: this.db.tags,
+            replicationIdentifier: "tag-rep",
+            push: {
+                async handler(changeRows) {
+                    // noop. server will push, not us
+                    return [];
+                },
+            },
+            pull: {
+                async handler(
+                    checkpointOrNull: Record<string, any> | undefined,
+                    batchSize: number,
+                ) {
+                    const updatedAt =
+                        checkpointOrNull?.updatedAt ??
+                        "2000-01-01T00:00:00.000Z";
+                    const tag = checkpointOrNull?.tag ?? "";
+                    const response = await fetch(
+                        `/api/messages/aggregate/pullTags?updatedAt=${updatedAt}&tag=${encodeURIComponent(tag)}&limit=${batchSize}`,
+                        {
+                            headers: await authHeaderProvider().promise,
+                        },
+                    );
+                    const data = await response.json();
+                    return {
+                        documents: data.tags ?? [],
+                        checkpoint: data.checkpoint,
+                    };
+                },
+            },
+        });
+        this.tagReplState.error$.subscribe((error) => {
+            console.error("tagReplState error:", error);
+        });
     }
 
     messages(): RxCollection<IGmailEntry> {
@@ -271,5 +387,13 @@ export class Database {
     }
     people(): RxCollection<IGooglePerson> {
         return this.db.people;
+    }
+
+    categories(): RxCollection<ICategoryInfo> {
+        return this.db.categories;
+    }
+
+    tags(): RxCollection<ITagInfo> {
+        return this.db.tags;
     }
 }
