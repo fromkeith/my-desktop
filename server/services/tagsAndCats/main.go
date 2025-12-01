@@ -240,7 +240,6 @@ func syncTags(ctx context.Context, email data.GmailEntry) error {
 	// account tags now
 	toWrite = toWrite[:0]
 	if len(toAdd) > 0 {
-		toWrite := make([]mongo.WriteModel, 0, len(toAdd))
 		for t := range toAdd {
 			entry := data.AccountTag{
 				AccountId: email.AccountId,
