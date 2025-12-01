@@ -34,3 +34,4 @@ server/.mongod/
 server/.mongot/
 server/.kafka-data/
 server/.postgres-data/
+server/.pgadmin-data/
