@@ -1,8 +1,8 @@
-import type { IGmailEntry } from "$lib/models";
+import type { IGmailEntry, IEmailListOptions } from "$lib/models";
 import { Provider } from "svelteprovider";
 import { databaseProvider } from "$lib/pods/DatabasePod";
 import { Database } from "$lib/db/rxdb";
-import type { MangoQuery, RxDocument } from "rxdb";
+import type { MangoQuery, MangoQuerySelector, RxDocument } from "rxdb";
 import { type Readable } from "svelte/store";
 import { observableToStore } from "$lib/utils/observableToStore";
 
@@ -12,19 +12,40 @@ export const dateFormat = new Intl.DateTimeFormat("en", {
 });
 
 class EmailListProvider extends Provider<RxDocument<IGmailEntry, {}>[]> {
-    private labels: string[];
-    constructor(labels: string[] = []) {
+    private options: IEmailListOptions;
+    constructor(options: Partial<IEmailListOptions> | undefined) {
         super([], databaseProvider());
-        this.labels = labels;
+        this.options = Object.assign(
+            {
+                labels: [],
+                categories: [],
+                tags: [],
+            },
+            options,
+        );
     }
     protected build(db: Database): Readable<RxDocument<IGmailEntry, {}>[]> {
         const query: MangoQuery<IGmailEntry> = {
             sort: [{ internalDate: "desc" }],
             limit: 100,
         };
-        if (this.labels.length > 0) {
-            query.selector = { labels: { $in: this.labels } };
+        let selector: MangoQuerySelector<IGmailEntry> = {};
+        if (this.options.labels.length > 0) {
+            selector = Object.assign(selector, {
+                labels: { $in: this.options.labels },
+            });
         }
+        if (this.options.categories.length > 0) {
+            selector = Object.assign(selector, {
+                categories: { $in: this.options.categories },
+            });
+        }
+        if (this.options.tags.length > 0) {
+            selector = Object.assign(selector, {
+                tags: { $in: this.options.tags },
+            });
+        }
+        query.selector = selector;
         return observableToStore(db.messages().find(query).$, []);
     }
 }

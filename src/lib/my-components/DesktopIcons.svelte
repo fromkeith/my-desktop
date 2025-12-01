@@ -24,7 +24,9 @@
             type: WindowType.EmailList,
             props: {
                 title: "Promotions",
-                labels: ["CATEGORY_PROMOTIONS"],
+                filter: {
+                    labels: ["CATEGORY_PROMOTIONS"],
+                },
             },
         });
     }

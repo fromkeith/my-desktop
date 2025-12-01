@@ -44,3 +44,9 @@ export interface IAuthToken {
     nbf: number; // not valid before
     iat: number; // expires at
 }
+
+export interface IEmailListOptions {
+    labels: string[];
+    categories: string[];
+    tags: string[];
+}

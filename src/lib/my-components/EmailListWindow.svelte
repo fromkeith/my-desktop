@@ -4,19 +4,19 @@
     import EmailRow from "$lib/my-components/EmailRow.svelte";
     import MailsIcon from "@lucide/svelte/icons/mails";
 
-    import type { IWindow } from "$lib/models";
+    import type { IWindow, IEmailListOptions } from "$lib/models";
 
     let {
         window,
-        labels,
+        filter,
         title,
     }: {
         window: IWindow;
-        labels?: string[];
+        filter?: IEmailListOptions;
         title?: string;
     } = $props();
 
-    let emails = $derived(emailListProvider(labels));
+    let emails = $derived(emailListProvider(filter));
 </script>
 
 <Window {window} {title}>
