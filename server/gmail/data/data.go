@@ -91,10 +91,11 @@ func (g GooglePerson) ToDocumentId() string {
 }
 
 type AccountTag struct {
-	AccountId string    `json:"-" bson:"accountId"`
-	Tag       string    `json:"tag" bson:"tag"`
-	UpdatedAt time.Time `validate:"required" bson:"updatedAt"`
-	CreatedAt time.Time `validate:"required" bson:"createdAt"`
+	AccountId    string    `json:"-" bson:"accountId"`
+	Tag          string    `json:"tag" bson:"tag"`
+	MessageCount int64     `json:"messageCount" bson:"messageCount"`
+	UpdatedAt    time.Time `validate:"required" bson:"updatedAt"`
+	CreatedAt    time.Time `validate:"required" bson:"createdAt"`
 }
 
 func (g AccountTag) ToDocumentId() string {
@@ -102,10 +103,11 @@ func (g AccountTag) ToDocumentId() string {
 }
 
 type AccountCategory struct {
-	AccountId string    `json:"-" bson:"accountId"`
-	Category  string    `json:"category" bson:"category"`
-	UpdatedAt time.Time `validate:"required" bson:"updatedAt"`
-	CreatedAt time.Time `validate:"required" bson:"createdAt"`
+	AccountId    string    `json:"-" bson:"accountId"`
+	Category     string    `json:"category" bson:"category"`
+	MessageCount int64     `json:"messageCount" bson:"messageCount"`
+	UpdatedAt    time.Time `validate:"required" bson:"updatedAt"`
+	CreatedAt    time.Time `validate:"required" bson:"createdAt"`
 }
 
 func (g AccountCategory) ToDocumentId() string {

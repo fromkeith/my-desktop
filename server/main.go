@@ -7,6 +7,7 @@ import (
 	"fromkeith/my-desktop-server/gmail/client"
 	"fromkeith/my-desktop-server/gmail/data"
 	"fromkeith/my-desktop-server/messages"
+	"fromkeith/my-desktop-server/messages/aggregate"
 	"fromkeith/my-desktop-server/middleware"
 	"fromkeith/my-desktop-server/people"
 
@@ -64,9 +65,11 @@ func main() {
 	r.GET("/api/messages/pull", messages.PullMessage)
 	r.GET("/api/messages/push", messages.PushMessage)
 	r.GET("/api/messages/pullStream", middleware.StreamHeaders(), messages.PullStream)
+	r.GET("/api/messages/categories", aggregate.CountCategories)
 	// THIS IS A DEBUG ENDPOINT
 	r.POST("/api/messages/:messageId/redo/:userId", messages.ReInjest)
 	r.POST("/api/messages/sync", messages.ForceSyncMessages)
+	// END DEBUG ENDPOINTS
 
 	r.GET("/api/people/sync", people.ForceSyncPeople)
 	r.GET("/api/people/pull", people.PullPeople)

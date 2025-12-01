@@ -7,6 +7,7 @@ import (
 	"fromkeith/my-desktop-server/globals"
 	"fromkeith/my-desktop-server/gmail/data"
 	"strings"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -237,34 +238,53 @@ func syncTags(ctx context.Context, email data.GmailEntry) error {
 	}
 
 	// account tags now
+	toWrite = toWrite[:0]
 	if len(toAdd) > 0 {
 		toWrite := make([]mongo.WriteModel, 0, len(toAdd))
 		for t := range toAdd {
 			entry := data.AccountTag{
 				AccountId: email.AccountId,
 				Tag:       t,
+				CreatedAt: time.Now().UTC(),
 			}
 			doc := bson.M{}
 			b, _ := bson.Marshal(entry)
 			_ = bson.Unmarshal(b, &doc)
 			delete(doc, "updatedAt")
-			delete(doc, "createdAt") // let $setOnInsert handle this
+			delete(doc, "messageCount") // let $inc handle this
 
 			filter := bson.M{"_id": entry.ToDocumentId()}
 			update := bson.M{
 				"$setOnInsert": doc,
 				"$currentDate": bson.M{"updatedAt": true},
+				"$inc":         bson.M{"messageCount": 1},
 			}
 			toWrite = append(toWrite, mongo.NewUpdateOneModel().
 				SetFilter(filter).
 				SetUpdate(update).
 				SetUpsert(true))
 		}
-		_, err = db.Collection("AccountTags").BulkWrite(ctx, toWrite)
-		return err
 	}
-
-	return nil
+	// decrement count
+	if len(toRemove) > 0 {
+		for t := range toRemove {
+			entry := data.AccountTag{
+				AccountId: email.AccountId,
+				Tag:       t,
+			}
+			filter := bson.M{"_id": entry.ToDocumentId()}
+			update := bson.M{
+				"$currentDate": bson.M{"updatedAt": true},
+				"$inc":         bson.M{"messageCount": -1},
+			}
+			toWrite = append(toWrite, mongo.NewUpdateOneModel().
+				SetFilter(filter).
+				SetUpdate(update).
+				SetUpsert(false))
+		}
+	}
+	_, err = db.Collection("AccountTags").BulkWrite(ctx, toWrite)
+	return err
 }
 
 func syncCats(ctx context.Context, email data.GmailEntry) error {
@@ -361,32 +381,50 @@ func syncCats(ctx context.Context, email data.GmailEntry) error {
 	}
 
 	// account categories now
+	toWrite = toWrite[:0]
 	if len(toAdd) > 0 {
-		toWrite := make([]mongo.WriteModel, 0, len(toAdd))
 		for t := range toAdd {
 			entry := data.AccountCategory{
 				AccountId: email.AccountId,
 				Category:  t,
+				CreatedAt: time.Now().UTC(),
 			}
 			doc := bson.M{}
 			b, _ := bson.Marshal(entry)
 			_ = bson.Unmarshal(b, &doc)
 			delete(doc, "updatedAt")
-			delete(doc, "createdAt") // let $setOnInsert handle this
+			delete(doc, "messageCount") // let $inc handle this
 
 			filter := bson.M{"_id": entry.ToDocumentId()}
 			update := bson.M{
 				"$setOnInsert": doc,
 				"$currentDate": bson.M{"updatedAt": true},
+				"$inc":         bson.M{"messageCount": 1},
 			}
 			toWrite = append(toWrite, mongo.NewUpdateOneModel().
 				SetFilter(filter).
 				SetUpdate(update).
 				SetUpsert(true))
 		}
-		_, err = db.Collection("AccountCategories").BulkWrite(ctx, toWrite)
-		return err
 	}
-
-	return nil
+	// decrement count
+	if len(toRemove) > 0 {
+		for t := range toRemove {
+			entry := data.AccountCategory{
+				AccountId: email.AccountId,
+				Category:  t,
+			}
+			filter := bson.M{"_id": entry.ToDocumentId()}
+			update := bson.M{
+				"$currentDate": bson.M{"updatedAt": true},
+				"$inc":         bson.M{"messageCount": -1},
+			}
+			toWrite = append(toWrite, mongo.NewUpdateOneModel().
+				SetFilter(filter).
+				SetUpdate(update).
+				SetUpsert(false))
+		}
+	}
+	_, err = db.Collection("AccountCategories").BulkWrite(ctx, toWrite)
+	return err
 }
