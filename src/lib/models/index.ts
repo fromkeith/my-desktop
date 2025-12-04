@@ -1,5 +1,5 @@
 export * from "./server";
-import type { IPersonInfo } from "./server";
+import type { IPersonInfo, IGmailEntry } from "./server";
 
 export enum WindowType {
     EmailList = "EmailListWindow",

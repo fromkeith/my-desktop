@@ -40,6 +40,16 @@ definitions:
     - tag
     - updatedAt
     type: object
+  CheckpointThreads:
+    properties:
+      threadId:
+        type: string
+      updatedAt:
+        type: string
+    required:
+    - threadId
+    - updatedAt
+    type: object
   GmailEntry:
     properties:
       additionalReceivers:
@@ -181,6 +191,22 @@ definitions:
     - revisionCount
     - updatedAt
     type: object
+  MessageBasic:
+    properties:
+      internalDate:
+        type: integer
+      messageId:
+        type: string
+      sender:
+        $ref: '#/definitions/PersonInfo'
+      snippet:
+        type: string
+      subject:
+        type: string
+    required:
+    - internalDate
+    - messageId
+    type: object
   PersonInfo:
     properties:
       email:
@@ -230,6 +256,18 @@ definitions:
     - checkpoint
     - tags
     type: object
+  PullThreadResponse:
+    properties:
+      checkpoint:
+        $ref: '#/definitions/CheckpointThreads'
+      threads:
+        items:
+          $ref: '#/definitions/Thread'
+        type: array
+    required:
+    - checkpoint
+    - threads
+    type: object
   TagInfo:
     properties:
       messageCount:
@@ -241,6 +279,39 @@ definitions:
     required:
     - messageCount
     - tag
+    - updatedAt
+    type: object
+  Thread:
+    properties:
+      categories:
+        items:
+          type: string
+        type: array
+      labels:
+        items:
+          type: string
+        type: array
+      messages:
+        items:
+          $ref: '#/definitions/MessageBasic'
+        type: array
+      mostRecentInternalDate:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      threadId:
+        type: string
+      updatedAt:
+        type: string
+    required:
+    - categories
+    - labels
+    - messages
+    - mostRecentInternalDate
+    - tags
+    - threadId
     - updatedAt
     type: object
   people.Address:
@@ -1575,4 +1646,33 @@ paths:
       summary: Pull the people database
       tags:
       - people
+  /threads/pull:
+    get:
+      description: Sync endpoint to pull all changes to threads for this account.
+      parameters:
+      - description: threadId
+        in: query
+        name: threadId
+        required: true
+        type: string
+      - description: Last updated time
+        in: query
+        name: updatedAt
+        required: true
+        type: string
+      - description: Batch size
+        in: query
+        name: limit
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/PullThreadResponse'
+      summary: Get Threads
+      tags:
+      - email
 swagger: "2.0"

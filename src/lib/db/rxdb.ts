@@ -22,6 +22,8 @@ import type {
     ICategoryInfo,
     ITagInfo,
     IPullCategoriesResponse,
+    ICheckpointThreads,
+    IThread,
 } from "$lib/models";
 import { Subject } from "rxjs";
 import { RxDBMigrationSchemaPlugin } from "rxdb/plugins/migration-schema";
@@ -145,6 +147,37 @@ const tagsSchema = {
     required: ["tag", "messageCount", "updatedAt"],
 } as const;
 
+const threadSchema = {
+    version: 0,
+    type: "object",
+    primaryKey: "threadId",
+    properties: {
+        threadId: { type: "string", maxLength: 512 },
+        messages: {
+            type: "array",
+            items: {
+                type: "object",
+                properties: {
+                    messageId: { type: "string" },
+                    sender: { type: "object" },
+                    internalDate: { type: "number" },
+                    subject: { type: "string" },
+                    snippet: { type: "string" },
+                },
+                required: ["messageId", "internalDate"],
+                additionalProperties: true,
+            },
+        },
+        mostRecentInternalDate: { type: "number" },
+        updatedAt: { type: "string" },
+        labels: { type: "array" },
+        tags: { type: "array", items: { type: "string" } },
+        categories: { type: "array", items: { type: "string" } },
+    },
+    additionalProperties: true,
+    required: ["threadId", "messages", "updatedAt", "mostRecentInternalDate"],
+} as const;
+
 export class Database {
     public db: any;
     private emailReplState:
@@ -158,6 +191,9 @@ export class Database {
         | undefined;
     private tagReplState:
         | RxReplicationState<ICheckpointTag, ITagInfo>
+        | undefined;
+    private threadReplState:
+        | RxReplicationState<ICheckpointThreads, IThread>
         | undefined;
 
     async init() {
@@ -196,6 +232,9 @@ export class Database {
             },
             tags: {
                 schema: tagsSchema,
+            },
+            threads: {
+                schema: threadSchema,
             },
         });
         const messagePullStream$ = new Subject<
@@ -387,6 +426,45 @@ export class Database {
         this.tagReplState.error$.subscribe((error) => {
             console.error("tagReplState error:", error);
         });
+
+        this.threadReplState = replicateRxCollection<
+            ICheckpointThreads,
+            IThread
+        >({
+            collection: this.db.threads,
+            replicationIdentifier: "threads-rep",
+            push: {
+                async handler(changeRows) {
+                    // noop. server will push, not us
+                    return [];
+                },
+            },
+            pull: {
+                async handler(
+                    checkpointOrNull: Record<string, any> | undefined,
+                    batchSize: number,
+                ) {
+                    const updatedAt =
+                        checkpointOrNull?.updatedAt ??
+                        "2000-01-01T00:00:00.000Z";
+                    const threadId = checkpointOrNull?.threadId ?? "";
+                    const response = await fetch(
+                        `/api/threads/pull?updatedAt=${updatedAt}&threadId=${threadId}&limit=${batchSize}`,
+                        {
+                            headers: await authHeaderProvider().promise,
+                        },
+                    );
+                    const data = await response.json();
+                    return {
+                        documents: data.threads ?? [],
+                        checkpoint: data.checkpoint,
+                    };
+                },
+            },
+        });
+        this.threadReplState.error$.subscribe((error) => {
+            console.error("threadReplState error:", error);
+        });
     }
 
     messages(): RxCollection<IGmailEntry> {
@@ -402,5 +480,9 @@ export class Database {
 
     tags(): RxCollection<ITagInfo> {
         return this.db.tags;
+    }
+
+    threads(): RxCollection<IThread> {
+        return this.db.threads;
     }
 }

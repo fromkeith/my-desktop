@@ -49,6 +49,9 @@ tasks:
     migrate-mongo-create:
         cmds:
             - cd migrations/mongo && migrate-mongo create {{.CLI_ARGS}}
+    migrate-mongo-down:
+        cmds:
+            - cd migrations/mongo && migrate-mongo down
 
     up:
         cmds:

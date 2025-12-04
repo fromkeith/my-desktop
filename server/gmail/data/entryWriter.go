@@ -177,6 +177,7 @@ func BulkWriteEmails(ctx context.Context, entries []GmailEntry) error {
 	// bulk writes the entries to mongoDB
 	// updates/writes over existing entries.
 	batchWriteModels := make([]mongo.WriteModel, 0, len(entries))
+	threadUpdates := make([]mongo.WriteModel, 0, len(entries))
 	for _, entry := range entries {
 		// if updating.. needs to increment the version in the database
 		// also need to remove fields that we are setting when writing
@@ -199,9 +200,54 @@ func BulkWriteEmails(ctx context.Context, entries []GmailEntry) error {
 			}).
 			SetUpsert(true),
 		)
+
+		if entry.ThreadId != "" {
+			messageObj := bson.M{
+				"messageId":    entry.MessageId,
+				"internalDate": entry.InternalDate,
+				"sender":       entry.Sender,
+				"subject":      entry.Subject,
+				"snippet":      entry.Snippet,
+			}
+
+			threadUpdates = append(threadUpdates, mongo.NewUpdateOneModel().
+				SetFilter(bson.M{"_id": entry.AccountId + ";" + entry.ThreadId}).
+				SetUpdate(bson.M{
+					"$set": bson.M{
+						"accountId": entry.AccountId,
+						"threadId":  entry.ThreadId,
+					},
+					"$addToSet": bson.M{
+						"messages": messageObj,
+						"tags": bson.M{
+							"$each": entry.Tags,
+						},
+						"labels": bson.M{
+							"$each": entry.Labels,
+						},
+						"categories": bson.M{
+							"$each": entry.Categories,
+						},
+					},
+					"$max": bson.M{
+						// keep the most recent internal date
+						"mostRecentInternalDate": entry.InternalDate,
+					},
+					"$currentDate": bson.M{"updatedAt": true},
+					"$setOnInsert": bson.M{
+						"createdAt": time.Now(),
+					},
+				}).
+				SetUpsert(true),
+			)
+		}
 	}
 	col := globals.DocDb().Collection("Messages")
 	if _, err := col.BulkWrite(ctx, batchWriteModels); err != nil {
+		return err
+	}
+	threadCol := globals.DocDb().Collection("MessageThreads")
+	if _, err := threadCol.BulkWrite(ctx, threadUpdates); err != nil {
 		return err
 	}
 	return nil

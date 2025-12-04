@@ -10,6 +10,7 @@ import (
 	"fromkeith/my-desktop-server/messages/aggregate"
 	"fromkeith/my-desktop-server/middleware"
 	"fromkeith/my-desktop-server/people"
+	"fromkeith/my-desktop-server/threads"
 
 	"github.com/rs/zerolog/log"
 
@@ -72,6 +73,8 @@ func main() {
 	r.POST("/api/messages/:messageId/redo/:userId", messages.ReInjest)
 	r.POST("/api/messages/sync", messages.ForceSyncMessages)
 	// END DEBUG ENDPOINTS
+
+	r.GET("/api/threads/pull", threads.PullThread)
 
 	r.GET("/api/people/sync", people.ForceSyncPeople)
 	r.GET("/api/people/pull", people.PullPeople)

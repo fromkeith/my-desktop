@@ -13,7 +13,7 @@ class EmailThreadProvider extends Provider<IGmailEntry[]> {
             headers,
         });
         const rows: IGmailEntry[] = await resp.json();
-        return rows;
+        return rows.sort((a, b) => a.internalDate - b.internalDate);
     }
 }
 

@@ -260,6 +260,49 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/threads/pull": {
+            "get": {
+                "description": "Sync endpoint to pull all changes to threads for this account.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "Get Threads",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "threadId",
+                        "name": "threadId",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Last updated time",
+                        "name": "updatedAt",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Batch size",
+                        "name": "limit",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/PullThreadResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -318,6 +361,21 @@ const docTemplate = `{
             ],
             "properties": {
                 "tag": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "CheckpointThreads": {
+            "type": "object",
+            "required": [
+                "threadId",
+                "updatedAt"
+            ],
+            "properties": {
+                "threadId": {
                     "type": "string"
                 },
                 "updatedAt": {
@@ -515,6 +573,30 @@ const docTemplate = `{
                 }
             }
         },
+        "MessageBasic": {
+            "type": "object",
+            "required": [
+                "internalDate",
+                "messageId"
+            ],
+            "properties": {
+                "internalDate": {
+                    "type": "integer"
+                },
+                "messageId": {
+                    "type": "string"
+                },
+                "sender": {
+                    "$ref": "#/definitions/PersonInfo"
+                },
+                "snippet": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string"
+                }
+            }
+        },
         "PersonInfo": {
             "type": "object",
             "required": [
@@ -590,6 +672,24 @@ const docTemplate = `{
                 }
             }
         },
+        "PullThreadResponse": {
+            "type": "object",
+            "required": [
+                "checkpoint",
+                "threads"
+            ],
+            "properties": {
+                "checkpoint": {
+                    "$ref": "#/definitions/CheckpointThreads"
+                },
+                "threads": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Thread"
+                    }
+                }
+            }
+        },
         "TagInfo": {
             "type": "object",
             "required": [
@@ -602,6 +702,53 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "tag": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "Thread": {
+            "type": "object",
+            "required": [
+                "categories",
+                "labels",
+                "messages",
+                "mostRecentInternalDate",
+                "tags",
+                "threadId",
+                "updatedAt"
+            ],
+            "properties": {
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "messages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/MessageBasic"
+                    }
+                },
+                "mostRecentInternalDate": {
+                    "type": "integer"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "threadId": {
                     "type": "string"
                 },
                 "updatedAt": {

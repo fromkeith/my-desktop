@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { emailListProvider } from "$lib/pods/EmailListPod";
+    import { threadListProvider } from "$lib/pods/ThreadListPod";
     import Window from "$lib/my-components/Window.svelte";
-    import EmailRow from "$lib/my-components/EmailRow.svelte";
+    import ThreadRow from "$lib/my-components/ThreadRow.svelte";
     import MailsIcon from "@lucide/svelte/icons/mails";
 
     import type { IWindow, IEmailListOptions } from "$lib/models";
@@ -16,7 +16,7 @@
         title?: string;
     } = $props();
 
-    let emails = $derived(emailListProvider(filter));
+    let threads = $derived(threadListProvider(filter));
 </script>
 
 <Window {window} {title}>
@@ -24,8 +24,8 @@
         <MailsIcon />
     {/snippet}
     {#snippet content()}
-        {#each $emails as email (email.messageId)}
-            <EmailRow {email} />
+        {#each $threads as thread (thread.threadId)}
+            <ThreadRow {thread} />
         {/each}
     {/snippet}
 </Window>
