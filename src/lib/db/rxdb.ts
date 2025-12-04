@@ -30,7 +30,7 @@ addRxPlugin(RxDBMigrationSchemaPlugin);
 addRxPlugin(RxDBDevModePlugin);
 
 const messageSchema = {
-    version: 1,
+    version: 2,
     type: "object",
     primaryKey: "messageId",
     properties: {
@@ -53,6 +53,7 @@ const messageSchema = {
         isDeleted: { type: "boolean" },
         tags: { type: "array", items: { type: "string" } },
         categories: { type: "array", items: { type: "string" } },
+        todos: { type: "array", items: { type: "string" } },
         /** For Sync + Conflict Resolution */
         updatedAt: { type: "string" },
         userId: { type: "string" },
@@ -177,6 +178,12 @@ export class Database {
                         // Perform migration logic here
                         newDoc.tags = [];
                         newDoc.categories = [];
+                        return newDoc;
+                    },
+                    2: function (oldDoc: any) {
+                        const newDoc = { ...oldDoc };
+                        // Perform migration logic here
+                        newDoc.todos = [];
                         return newDoc;
                     },
                 },

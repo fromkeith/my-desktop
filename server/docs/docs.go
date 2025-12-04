@@ -345,6 +345,7 @@ const docTemplate = `{
                 "subject",
                 "tags",
                 "threadId",
+                "todos",
                 "updatedAt",
                 "userId"
             ],
@@ -426,6 +427,12 @@ const docTemplate = `{
                 },
                 "threadId": {
                     "type": "string"
+                },
+                "todos": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "updatedAt": {
                     "description": "For Sync + Conflict Resolution",
@@ -568,18 +575,18 @@ const docTemplate = `{
         "PullTagsResponse": {
             "type": "object",
             "required": [
-                "categories",
-                "checkpoint"
+                "checkpoint",
+                "tags"
             ],
             "properties": {
-                "categories": {
+                "checkpoint": {
+                    "$ref": "#/definitions/CheckpointTag"
+                },
+                "tags": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/TagInfo"
                     }
-                },
-                "checkpoint": {
-                    "$ref": "#/definitions/CheckpointTag"
                 }
             }
         },

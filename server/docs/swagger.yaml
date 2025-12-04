@@ -99,6 +99,10 @@ definitions:
         type: array
       threadId:
         type: string
+      todos:
+        items:
+          type: string
+        type: array
       updatedAt:
         description: For Sync + Conflict Resolution
         type: string
@@ -122,6 +126,7 @@ definitions:
     - subject
     - tags
     - threadId
+    - todos
     - updatedAt
     - userId
     type: object
@@ -215,15 +220,15 @@ definitions:
     type: object
   PullTagsResponse:
     properties:
-      categories:
+      checkpoint:
+        $ref: '#/definitions/CheckpointTag'
+      tags:
         items:
           $ref: '#/definitions/TagInfo'
         type: array
-      checkpoint:
-        $ref: '#/definitions/CheckpointTag'
     required:
-    - categories
     - checkpoint
+    - tags
     type: object
   TagInfo:
     properties:

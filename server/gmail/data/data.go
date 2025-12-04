@@ -33,6 +33,7 @@ type GmailEntry struct {
 	IsDeleted  bool     `validate:"required" bson:"isDeleted"`
 	Tags       []string `validate:"required" bson:"tags"`
 	Categories []string `validate:"required" bson:"categories"`
+	Todos      []string `validate:"required" bson:"todos"`
 
 	//
 	// used in database, but not returned via API
