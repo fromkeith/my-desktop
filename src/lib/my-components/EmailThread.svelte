@@ -100,10 +100,7 @@
                 </div>
             </div>
         </div>
-        <div class="mt-1 flex flex-wrap">
-            <EmailActions email={last}></EmailActions>
-        </div>
-        <Separator />
+        <Separator class="mt-2" />
         {#each thread as e (e.messageId)}
             <EmailThreadRow
                 email={e}
