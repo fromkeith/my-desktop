@@ -1,14 +1,6 @@
 <script lang="ts">
     import { Separator } from "$lib/components/ui/separator/index.js";
-    import * as ButtonGroup from "$lib/components/ui/button-group/index.js";
-    import { Button } from "$lib/components/ui/button/index.js";
-    import ArchiveIcon from "@lucide/svelte/icons/archive";
-    import DeleteIcon from "@lucide/svelte/icons/delete";
-    import MailIcon from "@lucide/svelte/icons/mail";
-    import ReplyIcon from "@lucide/svelte/icons/reply";
-    import ChevronsUpDownIcon from "@lucide/svelte/icons/chevrons-up-down";
-    import ReplyAllIcon from "@lucide/svelte/icons/reply-all";
-    import ForwardIcon from "@lucide/svelte/icons/forward";
+
     import {
         type IGmailEntry,
         WindowType,
@@ -19,8 +11,8 @@
     import EmailThreadRow from "./EmailThreadRow.svelte";
     import { getContext } from "svelte";
     import { windowProvider } from "$lib/pods/WindowsPod";
-    import * as Collapsible from "$lib/components/ui/collapsible/index.js";
     import ShortenedEmailList from "./ShortenedEmailList.svelte";
+    import EmailActions from "./EmailActions.svelte";
 
     export let threadId: string;
     export let thread: IGmailEntry[];
@@ -84,8 +76,6 @@
     }
 </script>
 
-{last}
-
 {#if thread.length > 0 && last}
     <h1 class="text-xs">{last.subject}</h1>
     <div class="mb-2 mr-2">
@@ -111,30 +101,7 @@
             </div>
         </div>
         <div class="mt-1 flex flex-wrap">
-            <ButtonGroup.Root>
-                <Button variant="outline">
-                    <ArchiveIcon />
-                </Button>
-                <Button variant="outline">
-                    <DeleteIcon />
-                </Button>
-                <Button variant="outline">
-                    <MailIcon />
-                </Button>
-            </ButtonGroup.Root>
-            <div class="grow"></div>
-            <Button variant="outline" onclick={forward}>
-                <ForwardIcon />
-            </Button>
-            <div class="ml-1"></div>
-            <ButtonGroup.Root>
-                <Button variant="outline" onclick={reply}>
-                    <ReplyIcon />
-                </Button>
-                <Button variant="outline" onclick={replyAll}>
-                    <ReplyAllIcon />
-                </Button>
-            </ButtonGroup.Root>
+            <EmailActions email={last}></EmailActions>
         </div>
         <Separator />
         {#each thread as e (e.messageId)}

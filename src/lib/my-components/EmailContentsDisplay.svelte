@@ -22,6 +22,6 @@
     }
 </script>
 
-<div class="border-1 overflow-auto w-full">
+<div class="border-1 overflow-auto w-full p-4">
     {@html safeContents}
 </div>

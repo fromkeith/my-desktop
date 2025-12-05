@@ -8,7 +8,7 @@
     import MailIcon from "@lucide/svelte/icons/mail";
 
     let isHovering: boolean = false;
-    let hideTimeout;
+    let hideTimeout: any;
 
     function mouseOver() {
         clearTimeout(hideTimeout);
@@ -25,7 +25,9 @@
 <div
     class="flex justify-center items-center p-2 relative"
     on:mouseover={mouseOver}
+    on:focus={mouseOver}
     on:mouseout={mouseOut}
+    on:blur={mouseOut}
 >
     <Checkbox />
     {#if isHovering}

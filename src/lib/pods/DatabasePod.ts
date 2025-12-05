@@ -5,6 +5,7 @@ import { Database } from "$lib/db/rxdb";
 class DatabaseProvider extends Provider<Database | undefined | null> {
     constructor() {
         super(undefined, authHeaderProvider());
+        this.keepAlive = true;
     }
     protected async build(
         headers: Headers,

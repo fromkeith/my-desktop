@@ -5,6 +5,7 @@ import { Database } from "$lib/db/rxdb";
 import type { MangoQuery, MangoQuerySelector, RxDocument } from "rxdb";
 import { type Readable } from "svelte/store";
 import { observableToStore } from "$lib/utils/observableToStore";
+import { buildFilter } from "$lib/utils/query";
 
 export const dateFormat = new Intl.DateTimeFormat("en", {
     month: "short",
@@ -32,17 +33,17 @@ class ThreadListProvider extends Provider<RxDocument<IThread, {}>[]> {
         let selector: MangoQuerySelector<IThread> = {};
         if (this.options.labels.length > 0) {
             selector = Object.assign(selector, {
-                labels: { $in: this.options.labels },
+                labels: buildFilter(this.options.labels),
             });
         }
         if (this.options.categories.length > 0) {
             selector = Object.assign(selector, {
-                categories: { $in: this.options.categories },
+                categories: buildFilter(this.options.categories),
             });
         }
         if (this.options.tags.length > 0) {
             selector = Object.assign(selector, {
-                tags: { $in: this.options.tags },
+                tags: buildFilter(this.options.tags),
             });
         }
         query.selector = selector;
