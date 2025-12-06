@@ -139,7 +139,8 @@ Some people have good experiences with MSYS2: https://www.msys2.org/. After inst
     - `services/` - A series of background services, heavily relies on Kafka.
         - `email-injestor` - Pulls new email content from GMail and saves it to MongoDB.
         - `gemini` - Triggered off a new email. Runs the email through Gemini, and saves the vectors, categories, and tags to MongoDB.
-        - `tagsAndCats` - Makes categories and tags searchable + keeps a counter for each account.
+        - `tagsAndCats` - Listens to MongoDB "Messages". Makes categories and tags searchable + keeps a counter for each account.
+        - `messageToThread` - Listens to MongoDB "Messages". Puts messages into "MessageThreads" collection.
 
 # TODO
 

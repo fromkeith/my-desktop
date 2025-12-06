@@ -1,8 +1,10 @@
 package messages
 
 import (
+	"context"
 	"fromkeith/my-desktop-server/globals"
 	"fromkeith/my-desktop-server/gmail/data"
+	"fromkeith/my-desktop-server/utils"
 	"io"
 	"time"
 
@@ -40,50 +42,58 @@ func PullStream(r *gin.Context) {
 	}
 	defer stream.Close(r)
 
+	streamCtx, cancel := context.WithCancel(r.Request.Context())
+	defer cancel()
+
+	batchChan, batchErr := utils.BatchMongoStreamChannel(streamCtx, stream, 10, time.Second)
+
 	r.Stream(func(w io.Writer) bool {
-		if stream.Next(r.Request.Context()) {
-			var email data.GmailEntry
-			var ev bson.M
-			if err := stream.Decode(&ev); err != nil {
+		select {
+		case err := <-batchErr:
+			if err != nil {
 				log.Error().
 					Ctx(r).
 					Err(err).
-					Msg("failed to unmarshal email doc in stream")
+					Msg("failed to batch email docs in stream")
 				return false
 			}
-			full, ok := ev["fullDocument"]
-			if !ok {
-				return true
+		case batch := <-batchChan:
+			payloads := make([]data.GmailEntry, 0, len(batch))
+			chkPoint := SyncCheckpoint{}
+			for _, ev := range batch {
+				full, ok := ev["fullDocument"]
+				if !ok {
+					return true
+				}
+				raw, _ := bson.Marshal(full)
+				var email data.GmailEntry
+				if err := bson.Unmarshal(raw, &email); err != nil {
+					log.Error().
+						Ctx(r).
+						Err(err).
+						Any("full", full).
+						Msg("failed to unmarshal email in stream")
+					return true
+				}
+				ensureJsonEntry(&email)
+				payloads = append(payloads, email)
+				at := email.UpdatedAt.Format(time.RFC3339Nano)
+				if at > chkPoint.UpdatedAt {
+					chkPoint = SyncCheckpoint{MessageId: email.MessageId, UpdatedAt: at}
+				} else if at == chkPoint.UpdatedAt && email.MessageId > chkPoint.MessageId {
+					chkPoint = SyncCheckpoint{MessageId: email.MessageId, UpdatedAt: at}
+				}
 			}
-			raw, _ := bson.Marshal(full)
-			if err := bson.Unmarshal(raw, &email); err != nil {
-				log.Error().
-					Ctx(r).
-					Err(err).
-					Any("full", full).
-					Msg("failed to unmarshal email in stream")
-				return true
-			}
-
 			payload, _ := json.Marshal(PullMessagesResponse{
-				Messages:   []data.GmailEntry{email},
-				Checkpoint: SyncCheckpoint{MessageId: email.MessageId, UpdatedAt: email.UpdatedAt.Format(time.RFC3339Nano)},
+				Messages:   payloads,
+				Checkpoint: chkPoint,
 			})
 			r.SSEvent("message", payload)
-			// we return so gin can flush, we will get called again
 			return true
+		case <-time.After(time.Second):
+			return true // allow the request to check its status or end
 		}
-		if err := stream.Err(); err != nil {
-			// same as context, so probably disconnect
-			if err == r.Request.Context().Err() {
-				return false
-			}
-			log.Error().
-				Ctx(r).
-				Err(err).
-				Msg("stream failed")
-		}
-		return false
+		return true
 	})
 
 }

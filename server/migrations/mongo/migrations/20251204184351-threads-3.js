@@ -83,6 +83,7 @@ module.exports = {
                                 sender: "$sender",
                                 subject: "$subject",
                                 snippet: "$snippet",
+                                labels: "$labels",
                             },
                         },
 
@@ -93,7 +94,6 @@ module.exports = {
                         categoriesArrays: {
                             $push: { $ifNull: ["$categories", []] },
                         },
-                        labelsArrays: { $push: { $ifNull: ["$labels", []] } },
                         tagsArrays: { $push: { $ifNull: ["$tags", []] } },
                     },
                 },
@@ -116,13 +116,6 @@ module.exports = {
                         categories: {
                             $reduce: {
                                 input: "$categoriesArrays",
-                                initialValue: [],
-                                in: { $setUnion: ["$$value", "$$this"] },
-                            },
-                        },
-                        labels: {
-                            $reduce: {
-                                input: "$labelsArrays",
                                 initialValue: [],
                                 in: { $setUnion: ["$$value", "$$this"] },
                             },

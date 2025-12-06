@@ -71,6 +71,11 @@ func PullMessage(r *gin.Context) {
 		r.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
+	// ensure we return empty arrays for empty fields
+
+	for i, m := range messages {
+		messages[i] = ensureJsonEntry(&m)
+	}
 
 	var nextId string
 	var nextUpdatedAt string
@@ -90,4 +95,24 @@ func PullMessage(r *gin.Context) {
 		Messages:   messages,
 		Checkpoint: SyncCheckpoint{MessageId: nextId, UpdatedAt: nextUpdatedAt},
 	})
+}
+
+func ensureJsonEntry(m *data.GmailEntry) data.GmailEntry {
+	emptyArray := make([]string, 0)
+	if m.Labels == nil {
+		m.Labels = emptyArray
+	}
+	if m.Categories == nil {
+		m.Categories = emptyArray
+	}
+	if m.Tags == nil {
+		m.Tags = emptyArray
+	}
+	if m.Todos == nil {
+		m.Todos = emptyArray
+	}
+	if m.AdditionalReceivers == nil {
+		m.AdditionalReceivers = make(map[string][]data.PersonInfo)
+	}
+	return *m
 }

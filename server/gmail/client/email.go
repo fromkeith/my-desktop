@@ -472,3 +472,13 @@ func decodeB64URL(s string) string {
 	}
 	return string(b)
 }
+
+func (g *googleClient) UpdateMessage(ctx context.Context, messageId string, modifyReq *gmail.ModifyMessageRequest) error {
+	_, err := g.gmail.Users.Messages.Modify(g.userId, messageId, modifyReq).Context(ctx).Do()
+	return err
+}
+
+func (g *googleClient) BulkUpdateMessages(ctx context.Context, batchReq *gmail.BatchModifyMessagesRequest) error {
+	err := g.gmail.Users.Messages.BatchModify(g.userId, batchReq).Context(ctx).Do()
+	return err
+}

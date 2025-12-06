@@ -11,7 +11,11 @@ import {
     RxReplicationState,
 } from "rxdb/plugins/replication";
 import { authHeaderProvider } from "$lib/pods/AuthPod";
-import { toTypedRxJsonSchema, type RxReplicationPullStreamItem } from "rxdb";
+import {
+    toTypedRxJsonSchema,
+    type RxReplicationPullStreamItem,
+    type WithDeleted,
+} from "rxdb";
 import type {
     IGmailEntry,
     IGooglePerson,
@@ -24,6 +28,8 @@ import type {
     IPullCategoriesResponse,
     ICheckpointThreads,
     IThread,
+    IPullMessagesResponse,
+    IPushMessageResponse,
 } from "$lib/models";
 import { Subject } from "rxjs";
 import { RxDBMigrationSchemaPlugin } from "rxdb/plugins/migration-schema";
@@ -148,7 +154,7 @@ const tagsSchema = {
 } as const;
 
 const threadSchema = {
-    version: 0,
+    version: 1,
     type: "object",
     primaryKey: "threadId",
     properties: {
@@ -163,6 +169,7 @@ const threadSchema = {
                     internalDate: { type: "number" },
                     subject: { type: "string" },
                     snippet: { type: "string" },
+                    labels: { type: "array", items: { type: "string" } },
                 },
                 required: ["messageId", "internalDate"],
                 additionalProperties: true,
@@ -170,7 +177,6 @@ const threadSchema = {
         },
         mostRecentInternalDate: { type: "number" },
         updatedAt: { type: "string" },
-        labels: { type: "array" },
         tags: { type: "array", items: { type: "string" } },
         categories: { type: "array", items: { type: "string" } },
     },
@@ -181,19 +187,19 @@ const threadSchema = {
 export class Database {
     public db: any;
     private emailReplState:
-        | RxReplicationState<ICheckpointMessages, IGmailEntry>
+        | RxReplicationState<IGmailEntry, ICheckpointMessages>
         | undefined;
     private peopleReplState:
-        | RxReplicationState<ICheckpointPerson, IGooglePerson>
+        | RxReplicationState<IGooglePerson, ICheckpointPerson>
         | undefined;
     private categoryReplState:
-        | RxReplicationState<ICheckpointCategory, ICategoryInfo>
+        | RxReplicationState<ICategoryInfo, ICheckpointCategory>
         | undefined;
     private tagReplState:
-        | RxReplicationState<ICheckpointTag, ITagInfo>
+        | RxReplicationState<ITagInfo, ICheckpointTag>
         | undefined;
     private threadReplState:
-        | RxReplicationState<ICheckpointThreads, IThread>
+        | RxReplicationState<IThread, ICheckpointThreads>
         | undefined;
 
     async init() {
@@ -235,10 +241,17 @@ export class Database {
             },
             threads: {
                 schema: threadSchema,
+                migrationStrategies: {
+                    1: function (oldDoc: any) {
+                        const newDoc = { ...oldDoc };
+                        delete newDoc.labels;
+                        return newDoc;
+                    },
+                },
             },
         });
         const messagePullStream$ = new Subject<
-            RxReplicationPullStreamItem<ICheckpointMessages, IGmailEntry>
+            RxReplicationPullStreamItem<IGmailEntry, ICheckpointMessages>
         >();
 
         const auth = await authHeaderProvider().promise;
@@ -254,25 +267,34 @@ export class Database {
             });
         };
         this.emailReplState = replicateRxCollection<
-            ICheckpointMessages,
-            IGmailEntry
+            IGmailEntry,
+            ICheckpointMessages
         >({
             collection: this.db.messages,
             replicationIdentifier: "email-rep",
             push: {
                 async handler(changeRows) {
-                    // const rawResponse = await fetch("/api/messages/push", {
-                    //     method: "POST",
-                    //     headers: {
-                    //         Accept: "application/json",
-                    //         "Content-Type": "application/json",
-                    //     },
-                    //     body: JSON.stringify(changeRows),
-                    // });
-                    // const conflictsArray = await rawResponse.json();
-                    // return conflictsArray;
-                    console.log("push", changeRows);
-                    return [];
+                    console.log("Pushing changes:", changeRows);
+                    const auth: Headers = await authHeaderProvider().promise;
+                    const rawResponse = await fetch("/api/messages/push", {
+                        method: "POST",
+                        headers: {
+                            Accept: "application/json",
+                            "Content-Type": "application/json",
+                            Authorization: auth.get("Authorization")!,
+                        },
+                        body: JSON.stringify({ rows: changeRows }),
+                    });
+                    const resp: IPushMessageResponse = await rawResponse.json();
+                    const messages: WithDeleted<IGmailEntry>[] = (
+                        resp.conflicts ?? []
+                    ).map((a) => {
+                        return {
+                            ...a,
+                            _deleted: a.isDeleted,
+                        };
+                    });
+                    return messages;
                 },
             },
             pull: {
@@ -290,9 +312,17 @@ export class Database {
                             headers: await authHeaderProvider().promise,
                         },
                     );
-                    const data = await response.json();
+                    const data: IPullMessagesResponse = await response.json();
+                    const messages: WithDeleted<IGmailEntry>[] = (
+                        data.messages ?? []
+                    ).map((a) => {
+                        return {
+                            ...a,
+                            _deleted: a.isDeleted,
+                        };
+                    });
                     return {
-                        documents: data.messages ?? [],
+                        documents: messages,
                         checkpoint: data.checkpoint,
                     };
                 },
@@ -304,13 +334,14 @@ export class Database {
         });
 
         this.peopleReplState = replicateRxCollection<
-            ICheckpointPerson,
-            IGooglePerson
+            IGooglePerson,
+            ICheckpointPerson
         >({
             collection: this.db.people,
             replicationIdentifier: "people-rep",
             push: {
                 async handler(changeRows) {
+                    // console.log("Pushing changes:", changeRows);
                     // const rawResponse = await fetch("/api/messages/push", {
                     //     method: "POST",
                     //     headers: {
@@ -319,9 +350,8 @@ export class Database {
                     //     },
                     //     body: JSON.stringify(changeRows),
                     // });
-                    // const conflictsArray = await rawResponse.json();
-                    // return conflictsArray;
-                    console.log("push", changeRows);
+                    // const resp:  = await rawResponse.json();
+                    // return resp.conflicts;
                     return [];
                 },
             },
@@ -353,8 +383,8 @@ export class Database {
         });
 
         this.categoryReplState = replicateRxCollection<
-            ICheckpointCategory,
-            ICategoryInfo
+            ICategoryInfo,
+            ICheckpointCategory
         >({
             collection: this.db.categories,
             replicationIdentifier: "category-rep",
@@ -391,7 +421,7 @@ export class Database {
             console.error("categoryReplState error:", error);
         });
 
-        this.tagReplState = replicateRxCollection<ICheckpointTag, ITagInfo>({
+        this.tagReplState = replicateRxCollection<ITagInfo, ICheckpointTag>({
             collection: this.db.tags,
             replicationIdentifier: "tag-rep",
             push: {
@@ -428,8 +458,8 @@ export class Database {
         });
 
         this.threadReplState = replicateRxCollection<
-            ICheckpointThreads,
-            IThread
+            IThread,
+            ICheckpointThreads
         >({
             collection: this.db.threads,
             replicationIdentifier: "threads-rep",

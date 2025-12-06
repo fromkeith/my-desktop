@@ -12,7 +12,6 @@
     import { getContext } from "svelte";
     import { windowProvider } from "$lib/pods/WindowsPod";
     import ShortenedEmailList from "./ShortenedEmailList.svelte";
-    import EmailActions from "./EmailActions.svelte";
 
     export let threadId: string;
     export let thread: IGmailEntry[];
@@ -27,11 +26,11 @@
     $: last = thread.length > 0 ? thread[thread.length - 1] : null;
     $: lastMessageId = last?.messageId ?? null;
 
-    function toggle(e: CustomEvent<string>) {
-        if (expanded.has(e.detail)) {
-            expanded.delete(e.detail);
+    function toggle(messageId: string) {
+        if (expanded.has(messageId)) {
+            expanded.delete(messageId);
         } else {
-            expanded.add(e.detail);
+            expanded.add(messageId);
         }
         expanded = expanded;
     }
@@ -106,7 +105,7 @@
                 email={e}
                 originalSubject={last.subject}
                 expanded={expanded.has(e.messageId)}
-                on:toggle={toggle}
+                ontoggle={toggle}
             />
         {/each}
     </div>

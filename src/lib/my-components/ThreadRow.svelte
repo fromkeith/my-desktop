@@ -41,16 +41,32 @@
             myWindow,
         );
     }
-
-    // TODO: i don't think our server is going to update this properly...
-    let isRead = $derived(thread.labels?.indexOf("UNREAD") === -1);
+    let isRead = $derived.by(() => {
+        for (const m of thread.messages) {
+            if (m.labels?.indexOf("UNREAD") !== -1) {
+                return false;
+            }
+        }
+        return true;
+    });
+    let labels = $derived.by(() => {
+        const labelSet = new Set<string>();
+        for (const m of thread.messages) {
+            if (m.labels) {
+                for (const label of m.labels) {
+                    labelSet.add(label);
+                }
+            }
+        }
+        return Array.from(labelSet);
+    });
 </script>
 
 <div class="flex w-full mb-2 items-center" class:opacity-70={isRead}>
     <EmailRowActions />
     <a href={"#"} class="flex-1 min-w-0" on:click|preventDefault={openEmail}>
         <div class="w-full overflow-hidden flex">
-            <EmailLabels labels={thread.labels} />
+            <EmailLabels {labels} />
             <div class="truncate text-xs text-blue-900 grow-1">
                 {#if thread.messages.length > 1}
                     ({thread.messages.length})

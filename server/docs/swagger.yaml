@@ -195,6 +195,10 @@ definitions:
     properties:
       internalDate:
         type: integer
+      labels:
+        items:
+          type: string
+        type: array
       messageId:
         type: string
       sender:
@@ -205,6 +209,7 @@ definitions:
         type: string
     required:
     - internalDate
+    - labels
     - messageId
     type: object
   PersonInfo:
@@ -268,6 +273,31 @@ definitions:
     - checkpoint
     - threads
     type: object
+  PushMessageRequest:
+    properties:
+      rows:
+        items:
+          $ref: '#/definitions/PushMessageRow'
+        type: array
+    required:
+    - rows
+    type: object
+  PushMessageResponse:
+    properties:
+      conflicts:
+        items:
+          $ref: '#/definitions/GmailEntry'
+        type: array
+    required:
+    - conflicts
+    type: object
+  PushMessageRow:
+    properties:
+      assumedMasterState:
+        $ref: '#/definitions/GmailEntry'
+      newDocumentState:
+        $ref: '#/definitions/GmailEntry'
+    type: object
   TagInfo:
     properties:
       messageCount:
@@ -287,10 +317,6 @@ definitions:
         items:
           type: string
         type: array
-      labels:
-        items:
-          type: string
-        type: array
       messages:
         items:
           $ref: '#/definitions/MessageBasic'
@@ -307,7 +333,6 @@ definitions:
         type: string
     required:
     - categories
-    - labels
     - messages
     - mostRecentInternalDate
     - tags
@@ -1631,6 +1656,28 @@ paths:
       - text/event-stream
       responses: {}
       summary: Stream Messages
+      tags:
+      - email
+  /messages/push:
+    post:
+      consumes:
+      - application/json
+      description: Sync endpoint to push client changes to messages for this account.
+      parameters:
+      - description: Push Message Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/PushMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/PushMessageResponse'
+      summary: Update Messages
       tags:
       - email
   /people/pull:

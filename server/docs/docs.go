@@ -241,6 +241,40 @@ const docTemplate = `{
                 "responses": {}
             }
         },
+        "/messages/push": {
+            "post": {
+                "description": "Sync endpoint to push client changes to messages for this account.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "Update Messages",
+                "parameters": [
+                    {
+                        "description": "Push Message Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/PushMessageRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/PushMessageResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/people/pull": {
             "get": {
                 "description": "Pulls the people database to be local",
@@ -577,11 +611,18 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "internalDate",
+                "labels",
                 "messageId"
             ],
             "properties": {
                 "internalDate": {
                     "type": "integer"
+                },
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "messageId": {
                     "type": "string"
@@ -690,6 +731,45 @@ const docTemplate = `{
                 }
             }
         },
+        "PushMessageRequest": {
+            "type": "object",
+            "required": [
+                "rows"
+            ],
+            "properties": {
+                "rows": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/PushMessageRow"
+                    }
+                }
+            }
+        },
+        "PushMessageResponse": {
+            "type": "object",
+            "required": [
+                "conflicts"
+            ],
+            "properties": {
+                "conflicts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/GmailEntry"
+                    }
+                }
+            }
+        },
+        "PushMessageRow": {
+            "type": "object",
+            "properties": {
+                "assumedMasterState": {
+                    "$ref": "#/definitions/GmailEntry"
+                },
+                "newDocumentState": {
+                    "$ref": "#/definitions/GmailEntry"
+                }
+            }
+        },
         "TagInfo": {
             "type": "object",
             "required": [
@@ -713,7 +793,6 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "categories",
-                "labels",
                 "messages",
                 "mostRecentInternalDate",
                 "tags",
@@ -722,12 +801,6 @@ const docTemplate = `{
             ],
             "properties": {
                 "categories": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "labels": {
                     "type": "array",
                     "items": {
                         "type": "string"

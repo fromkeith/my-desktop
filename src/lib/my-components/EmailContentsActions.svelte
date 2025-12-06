@@ -44,7 +44,7 @@
                 </Tooltip.Provider>
             </div>
         {/if}
-        {#if email.todos.length > 0}
+        {#if email.todos?.length > 0}
             <div class="p-1 pt-2">
                 <Tooltip.Provider>
                     <Tooltip.Root>

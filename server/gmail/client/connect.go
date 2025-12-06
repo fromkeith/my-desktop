@@ -31,7 +31,11 @@ var (
 func init() {
 	creds := os.Getenv("GOOGLE_CREDENTIALS")
 	var err error
-	oauthConfig, err = google.ConfigFromJSON([]byte(creds), gmail.GmailReadonlyScope,
+	oauthConfig, err = google.ConfigFromJSON([]byte(creds),
+		gmail.GmailModifyScope,
+		gmail.GmailSendScope,
+		gmail.GmailComposeScope,
+		gmail.GmailLabelsScope,
 		"openid",
 		"email", "profile",
 		people.ContactsReadonlyScope,

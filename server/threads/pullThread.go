@@ -18,6 +18,7 @@ type MessageBasic struct {
 	Sender       data.PersonInfo `json:"sender" bson:"sender"`
 	Subject      string          `json:"subject" bson:"subject"`
 	Snippet      string          `json:"snippet" bson:"snippet"`
+	Labels       []string        `validate:"required" json:"labels" bson:"labels"`
 } // @name MessageBasic
 
 type ThreadEntry struct {
@@ -25,7 +26,6 @@ type ThreadEntry struct {
 	UpdatedAt              time.Time      `validate:"required" json:"updatedAt" bson:"updatedAt"`
 	ThreadId               string         `validate:"required" json:"threadId" bson:"threadId"`
 	MostRecentInternalDate int64          `validate:"required" json:"mostRecentInternalDate" bson:"mostRecentInternalDate"`
-	Labels                 []string       `validate:"required" json:"labels" bson:"labels"`
 	Categories             []string       `validate:"required" json:"categories" bson:"categories"`
 	Tags                   []string       `validate:"required" json:"tags" bson:"tags"`
 } // @name Thread

@@ -1,22 +1,34 @@
 <script lang="ts">
-    import EmailRowActions from "$lib/my-components/EmailRowActions.svelte";
-    import { windowProvider } from "$lib/pods/WindowsPod";
-    import { WindowType, type IGmailEntry, type IWindow } from "$lib/models";
-    import { createEventDispatcher, getContext } from "svelte";
+    import { type IGmailEntry } from "$lib/models";
     import { dateFormat } from "$lib/pods/EmailListPod";
     import EmailContentsDisplay from "./EmailContentsDisplay.svelte";
     import EmailContentsActions from "./EmailContentsActions.svelte";
+    import { emailMessageProvider } from "$lib/pods/EmailMessagePod";
 
-    const dispatch = createEventDispatcher();
+    let {
+        email,
+        originalSubject,
+        expanded,
+        ontoggle,
+    }: {
+        email: IGmailEntry;
+        originalSubject: string;
+        expanded: boolean;
+        ontoggle: (messageId: string) => void;
+    } = $props();
 
-    export let email: IGmailEntry;
-    export let originalSubject: string;
-    export let expanded: boolean;
-    let sender: string = email.sender.name || email.sender.email;
-    let receivedAt = dateFormat.format(new Date(email.internalDate));
+    let sender: string = $derived(email.sender.name || email.sender.email);
+    let receivedAt = $derived(dateFormat.format(new Date(email.internalDate)));
+
+    // mark as read when expanded
+    $effect(() => {
+        if (expanded && email.messageId) {
+            emailMessageProvider(email.messageId).markAsRead();
+        }
+    });
 
     function toggleExpansion() {
-        dispatch("toggle", email.messageId);
+        ontoggle(email.messageId);
     }
 </script>
 

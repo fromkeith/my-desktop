@@ -64,7 +64,7 @@ func main() {
 	r.GET("/api/gmail/message/:messageId", GetMessage)
 
 	r.GET("/api/messages/pull", messages.PullMessage)
-	r.GET("/api/messages/push", messages.PushMessage)
+	r.POST("/api/messages/push", messages.PushMessage)
 	r.GET("/api/messages/pullStream", middleware.StreamHeaders(), messages.PullStream)
 	r.GET("/api/messages/categories", aggregate.CountCategories)
 	r.GET("/api/messages/aggregate/pullCategories", aggregate.PullCategories)

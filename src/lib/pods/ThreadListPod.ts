@@ -33,7 +33,11 @@ class ThreadListProvider extends Provider<RxDocument<IThread, {}>[]> {
         let selector: MangoQuerySelector<IThread> = {};
         if (this.options.labels.length > 0) {
             selector = Object.assign(selector, {
-                labels: buildFilter(this.options.labels),
+                messages: {
+                    $elemMatch: {
+                        labels: buildFilter(this.options.labels),
+                    },
+                },
             });
         }
         if (this.options.categories.length > 0) {
