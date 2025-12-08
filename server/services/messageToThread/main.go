@@ -213,6 +213,11 @@ func handleItems(ctx context.Context, items []bson.M) {
 		}
 	}
 
+	if len(batch) == 0 {
+		return
+	}
+	log.Info().Ctx(ctx).Int("numThreads", len(batch)).Msg("Updating threads")
+
 	threadCol := globals.DocDb().Collection("MessageThreads")
 	_, err := threadCol.BulkWrite(ctx, batch)
 

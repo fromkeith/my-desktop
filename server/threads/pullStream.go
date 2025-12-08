@@ -1,9 +1,8 @@
-package messages
+package threads
 
 import (
 	"context"
 	"fromkeith/my-desktop-server/globals"
-	"fromkeith/my-desktop-server/gmail/data"
 	"fromkeith/my-desktop-server/utils"
 	"io"
 	"time"
@@ -19,11 +18,11 @@ import (
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // PullStream godoc
-// @Summary      Stream Messages
-// @Description  Sync endpoint to allow for for push from server to client of changes to messages.
+// @Summary      Stream Threads
+// @Description  Sync endpoint to allow for for push from server to client of changes to Threads.
 // @Tags         email
 // @Produce      event-stream
-// @Router       /messages/pullStream [get]
+// @Router       /threads/pullStream [get]
 func PullStream(r *gin.Context) {
 	accountId := r.GetString("accountId")
 
@@ -35,7 +34,7 @@ func PullStream(r *gin.Context) {
 	opts := options.ChangeStream().
 		SetFullDocument(options.UpdateLookup).
 		SetMaxAwaitTime(10 * time.Second)
-	stream, err := globals.DocDb().Collection("Messages").Watch(r, mongo.Pipeline{matchStage}, opts)
+	stream, err := globals.DocDb().Collection("MessageThreads").Watch(r, mongo.Pipeline{matchStage}, opts)
 	if err != nil {
 		r.Error(err)
 		return
@@ -59,7 +58,8 @@ func PullStream(r *gin.Context) {
 				return false
 			}
 		case batch := <-batchChan:
-			payloads := make([]data.GmailEntry, 0, len(batch))
+			log.Info().Msg("pullStream for threads had batch")
+			payloads := make([]ThreadEntry, 0, len(batch))
 			chkPoint := SyncCheckpoint{}
 			for _, ev := range batch {
 				full, ok := ev["fullDocument"]
@@ -67,26 +67,25 @@ func PullStream(r *gin.Context) {
 					return true
 				}
 				raw, _ := bson.Marshal(full)
-				var email data.GmailEntry
-				if err := bson.Unmarshal(raw, &email); err != nil {
+				var thread ThreadEntry
+				if err := bson.Unmarshal(raw, &thread); err != nil {
 					log.Error().
 						Ctx(r).
 						Err(err).
 						Any("full", full).
-						Msg("failed to unmarshal email in stream")
+						Msg("failed to unmarshal thread in stream")
 					return true
 				}
-				ensureJsonEntry(&email)
-				payloads = append(payloads, email)
-				at := email.UpdatedAt.Format(time.RFC3339Nano)
+				payloads = append(payloads, thread)
+				at := thread.UpdatedAt.Format(time.RFC3339Nano)
 				if at > chkPoint.UpdatedAt {
-					chkPoint = SyncCheckpoint{MessageId: email.MessageId, UpdatedAt: at}
-				} else if at == chkPoint.UpdatedAt && email.MessageId > chkPoint.MessageId {
-					chkPoint = SyncCheckpoint{MessageId: email.MessageId, UpdatedAt: at}
+					chkPoint = SyncCheckpoint{ThreadId: thread.ThreadId, UpdatedAt: at}
+				} else if at == chkPoint.UpdatedAt && thread.ThreadId > chkPoint.ThreadId {
+					chkPoint = SyncCheckpoint{ThreadId: thread.ThreadId, UpdatedAt: at}
 				}
 			}
-			payload, _ := json.Marshal(PullMessagesResponse{
-				Messages:   payloads,
+			payload, _ := json.Marshal(PullThreadResponse{
+				Threads:    payloads,
 				Checkpoint: chkPoint,
 			})
 			r.SSEvent("message", payload)

@@ -6,6 +6,7 @@ import (
 	"fromkeith/my-desktop-server/globals"
 	"fromkeith/my-desktop-server/gmail/data"
 	"fromkeith/my-desktop-server/services/kafkaservice"
+	"slices"
 	"strings"
 	"time"
 
@@ -59,6 +60,10 @@ func main() {
 
 }
 
+func isSpam(labels []string) bool {
+	return slices.Contains(labels, "SPAM")
+}
+
 func work(ctx context.Context, msgs []kafka.Message, available *kafka.Writer) (dlq []kafka.Message, err error) {
 
 	failed := make([]kafka.Message, 0)
@@ -79,6 +84,9 @@ func work(ctx context.Context, msgs []kafka.Message, available *kafka.Writer) (d
 			continue
 		}
 		entry := payload.Entry
+		if isSpam(entry.Labels) {
+			continue // don't AI spam
+		}
 		entry.AccountId = payload.AccountId // needed since accountId doesn't marshal to json
 		body, err := fetchBody(ctx, entry)
 		if err != nil {

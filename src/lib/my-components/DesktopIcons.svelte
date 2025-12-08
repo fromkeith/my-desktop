@@ -19,6 +19,7 @@
                 "-CATEGORY_PROMOTIONS",
                 "-CATEGORY_UPDATES",
                 "-CATEGORY_SOCIAL",
+                "-SPAM",
                 "INBOX",
             ],
             "Inbox",
@@ -70,7 +71,8 @@
 
 <DesktopIcon
     name="Promotions"
-    onclick={() => openWithLabels(["CATEGORY_PROMOTIONS"], "Promotions")}
+    onclick={() =>
+        openWithLabels(["CATEGORY_PROMOTIONS", "-SPAM"], "Promotions")}
 >
     {#snippet icon()}
         <StoreIcon class="size-12" />
@@ -79,7 +81,7 @@
 
 <DesktopIcon
     name="Updates"
-    onclick={() => openWithLabels(["CATEGORY_UPDATES"], "Updates")}
+    onclick={() => openWithLabels(["CATEGORY_UPDATES", "-SPAM"], "Updates")}
 >
     {#snippet icon()}
         <NewsPaperIcon class="size-12" />
@@ -88,7 +90,7 @@
 
 <DesktopIcon
     name="Social"
-    onclick={() => openWithLabels(["CATEGORY_SOCIAL"], "Social")}
+    onclick={() => openWithLabels(["CATEGORY_SOCIAL", "-SPAM"], "Social")}
 >
     {#snippet icon()}
         <MessageCircleIcon class="size-12" />

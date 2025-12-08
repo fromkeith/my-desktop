@@ -250,16 +250,16 @@ export class Database {
                 },
             },
         });
-        const messagePullStream$ = new Subject<
-            RxReplicationPullStreamItem<IGmailEntry, ICheckpointMessages>
-        >();
 
         const auth = await authHeaderProvider().promise;
 
-        const eventSource = new EventSource(
+        const messagePullStream$ = new Subject<
+            RxReplicationPullStreamItem<IGmailEntry, ICheckpointMessages>
+        >();
+        const messageEventSource = new EventSource(
             `/api/messages/pullStream?auth=${auth.get("Authorization")}`,
         );
-        eventSource.onmessage = (event) => {
+        messageEventSource.onmessage = (event) => {
             const eventData = JSON.parse(event.data);
             messagePullStream$.next({
                 documents: eventData.messages ?? [],
@@ -457,6 +457,20 @@ export class Database {
             console.error("tagReplState error:", error);
         });
 
+        const threadPullStream$ = new Subject<
+            RxReplicationPullStreamItem<IThread, ICheckpointThreads>
+        >();
+        const threadEventSource = new EventSource(
+            `/api/threads/pullStream?auth=${auth.get("Authorization")}`,
+        );
+        threadEventSource.onmessage = (event) => {
+            const eventData = JSON.parse(event.data);
+            threadPullStream$.next({
+                documents: eventData.threads ?? [],
+                checkpoint: eventData.checkpoint,
+            });
+        };
+
         this.threadReplState = replicateRxCollection<
             IThread,
             ICheckpointThreads
@@ -490,6 +504,7 @@ export class Database {
                         checkpoint: data.checkpoint,
                     };
                 },
+                stream$: threadPullStream$.asObservable(),
             },
         });
         this.threadReplState.error$.subscribe((error) => {
