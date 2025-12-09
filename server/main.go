@@ -75,7 +75,7 @@ func main() {
 	// END DEBUG ENDPOINTS
 
 	r.GET("/api/threads/pull", threads.PullThread)
-	r.GET("/api/threads/pullStream", threads.PullStream)
+	r.GET("/api/threads/pullStream", middleware.StreamHeaders(), threads.PullStream)
 
 	r.GET("/api/people/sync", people.ForceSyncPeople)
 	r.GET("/api/people/pull", people.PullPeople)

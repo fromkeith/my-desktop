@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog/pkgerrors"
 )
 
 var (
@@ -18,6 +19,8 @@ var (
 
 // overwrite the logger to write to console and file
 func init() {
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+
 	l, f, err := newLogger()
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Failed to create logger")
@@ -61,6 +64,7 @@ func newLogger() (*zerolog.Logger, *os.File, error) {
 
 	// Build the logger
 	logger := zerolog.New(multi).
+		Hook(ContextExtracHook{}).
 		With().
 		Timestamp().
 		Logger()
@@ -84,4 +88,19 @@ func (w zlWriter) Write(p []byte) (int, error) {
 func HookGin() {
 	gin.DefaultWriter = zlWriter{L: &log.Logger, Lvl: zerolog.InfoLevel}
 	gin.DefaultErrorWriter = zlWriter{L: &log.Logger, Lvl: zerolog.ErrorLevel}
+}
+
+type ContextExtracHook struct{}
+
+func (h ContextExtracHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
+	ctx := e.GetCtx()
+	if accountId, ok := ctx.Value("accountId").(string); ok && accountId != "" {
+		e.Str("accountId", accountId)
+	}
+	if requestId, ok := ctx.Value("requestId").(string); ok && requestId != "" {
+		e.Str("requestId", requestId)
+	}
+	if service, ok := ctx.Value("service").(string); ok && service != "" {
+		e.Str("service", service)
+	}
 }

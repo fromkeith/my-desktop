@@ -15,9 +15,11 @@ import (
 // This also has no error retrying or proper handling
 
 var (
-	writerQueue = make(chan GmailEntry, 512)
-	modifyQueue = make(chan modifyGmailEntry, 512)
-	bodyQueue   = make(chan GmailEntryBody, 512)
+	writerQueue       = make(chan GmailEntry, 512)
+	modifyQueue       = make(chan modifyGmailEntry, 512)
+	bodyQueue         = make(chan GmailEntryBody, 512)
+	writerStarted     = false
+	bodyWriterStarted = false
 )
 
 type modifyGmailEntry struct {
@@ -28,10 +30,16 @@ type modifyGmailEntry struct {
 }
 
 func WriteGmailEntry(entry GmailEntry) {
+	if !writerStarted {
+		log.Fatal().Msg("Writer not started")
+	}
 	writerQueue <- entry
 }
 
 func DeleteGmailEntry(accountId, messageId string) {
+	if !writerStarted {
+		log.Fatal().Msg("Writer not started")
+	}
 	modifyQueue <- modifyGmailEntry{
 		AccountId: accountId,
 		MessageId: messageId,
@@ -39,6 +47,9 @@ func DeleteGmailEntry(accountId, messageId string) {
 	}
 }
 func UpdateGmailEntryFields(accountId, messageId string, fields bson.M) {
+	if !writerStarted {
+		log.Fatal().Msg("Writer not started")
+	}
 	modifyQueue <- modifyGmailEntry{
 		AccountId: accountId,
 		MessageId: messageId,
@@ -48,10 +59,14 @@ func UpdateGmailEntryFields(accountId, messageId string, fields bson.M) {
 }
 
 func WriteGmailEntryBody(entry GmailEntryBody) {
+	if !bodyWriterStarted {
+		log.Fatal().Msg("Body Writer not started")
+	}
 	bodyQueue <- entry
 }
 
 func StartWriter(ctx context.Context) {
+	writerStarted = true
 	// blocks until 100 items read from the queue
 	// 5 seconds has passed, or the context is cancelled
 
@@ -82,7 +97,7 @@ func StartWriter(ctx context.Context) {
 				}
 				modifyWait = modifyWait[:0]
 			}
-		case <-time.After(5 * time.Second):
+		case <-time.After(time.Second):
 			if err := BulkWriteEmails(ctx, writeWait); err != nil {
 				log.Error().
 					Ctx(ctx).
@@ -151,6 +166,7 @@ func bulkModifyEmails(ctx context.Context, entries []modifyGmailEntry) error {
 			} else {
 				doc["$inc"] = bson.M{"revisionCount": 1}
 			}
+			log.Info().Ctx(ctx).Any("doc", doc).Msg("Update - Email")
 
 			entry := GmailEntry{
 				MessageId: task.MessageId,
@@ -208,6 +224,7 @@ func BulkWriteEmails(ctx context.Context, entries []GmailEntry) error {
 }
 
 func StartBodyWriter(ctx context.Context) {
+	bodyWriterStarted = true
 	// blocks until 100 items read from the queue
 	// 5 seconds has passed, or the context is cancelled
 
@@ -226,7 +243,7 @@ func StartBodyWriter(ctx context.Context) {
 				}
 				writeWait = writeWait[:0]
 			}
-		case <-time.After(5 * time.Second):
+		case <-time.After(time.Second):
 			if err := BulkWriteEmailBodies(ctx, writeWait); err != nil {
 				log.Error().
 					Ctx(ctx).

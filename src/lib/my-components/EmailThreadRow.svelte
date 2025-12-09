@@ -4,6 +4,7 @@
     import EmailContentsDisplay from "./EmailContentsDisplay.svelte";
     import EmailContentsActions from "./EmailContentsActions.svelte";
     import { emailMessageProvider } from "$lib/pods/EmailMessagePod";
+    import { unnumerializeText } from "$lib/utils/text";
 
     let {
         email,
@@ -30,6 +31,8 @@
     function toggleExpansion() {
         ontoggle(email.messageId);
     }
+
+    let snippet = $derived(unnumerializeText(email.snippet));
 </script>
 
 <div class="flex w-full mb-2 items-center">
@@ -42,7 +45,7 @@
         {#if email.subject != originalSubject}
             <div class="truncate text-sm">{email.subject}</div>
         {/if}
-        <div class="text-xs truncate opacity-70">{email.snippet}</div>
+        <div class="text-xs truncate opacity-70">{snippet}</div>
     </a>
     <div class="w-16 overflow-hidden text-right pv-1">
         {receivedAt}

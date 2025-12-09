@@ -64,6 +64,7 @@ func PullStream(r *gin.Context) {
 			for _, ev := range batch {
 				full, ok := ev["fullDocument"]
 				if !ok {
+					log.Info().Msg("missing fullDocument in thread event")
 					return true
 				}
 				raw, _ := bson.Marshal(full)
@@ -84,6 +85,7 @@ func PullStream(r *gin.Context) {
 					chkPoint = SyncCheckpoint{ThreadId: thread.ThreadId, UpdatedAt: at}
 				}
 			}
+			log.Info().Int("batchSize", len(payloads)).Msg("thread stream batch size")
 			payload, _ := json.Marshal(PullThreadResponse{
 				Threads:    payloads,
 				Checkpoint: chkPoint,

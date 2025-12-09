@@ -226,6 +226,7 @@ func HandleCallback(r *gin.Context) {
 	}
 
 	extraQuery := ""
+	isPrimary := false
 	if assignAuth {
 		claims := auth.DesktopClaims{}
 		claims.Subject = existingAccountId
@@ -253,8 +254,29 @@ func HandleCallback(r *gin.Context) {
 			} else {
 				go client.Bootstrap(bkg)
 			}
+			isPrimary = true
 		}
 	}
+
+	// if we already have it... switch its account
+	_, err = globals.Db().Exec(r,
+		`INSERT INTO UserEmails (emailAddress, accountId, userId, primaryAddress) VALUES ($1, $2, $3, $4)
+		ON CONFLICT (emailAddress) DO UPDATE SET accountId = $2, userId = $3, primaryAddress = $4`,
+		claims.Email,
+		existingAccountId,
+		claims.Sub,
+		isPrimary,
+	)
+	if err != nil {
+		log.Error().
+			Ctx(r).
+			Str("existingAccountId", existingAccountId).
+			Str("userId", claims.Sub).
+			Stack().
+			Err(err).
+			Msg("Failed to link email to userId")
+	}
+
 	// Done — redirect back to your app
 	r.Redirect(http.StatusFound, os.Getenv("DOMAIN_URL")+sess["post_auth_return"]+extraQuery)
 }

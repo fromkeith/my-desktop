@@ -5,6 +5,7 @@
     import { getContext } from "svelte";
     import { dateFormat } from "$lib/pods/EmailListPod";
     import EmailLabels from "./EmailLabels.svelte";
+    import { unnumerializeText } from "$lib/utils/text";
 
     let {
         email,
@@ -29,6 +30,7 @@
     }
 
     let isRead = $derived(email.labels?.indexOf("UNREAD") === -1);
+    let snippet = $derived(unnumerializeText(email.snippet));
 </script>
 
 <div class="flex w-full mb-2 items-center" class:opacity-70={isRead}>
@@ -39,7 +41,7 @@
             <div class="truncate text-xs text-blue-900 grow-1">{sender}</div>
         </div>
         <div class="truncate text-sm">{email.subject}</div>
-        <div class="text-xs truncate opacity-70">{email.snippet}</div>
+        <div class="text-xs truncate opacity-70">{snippet}</div>
     </a>
     <div class="w-16 overflow-hidden text-right pv-1">
         {receivedAt}

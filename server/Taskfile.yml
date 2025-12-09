@@ -20,6 +20,9 @@ tasks:
     build-messageToThread:
         cmds:
             - go build ./services/messageToThread
+    build-gmail-sub:
+        cmds:
+            - go build ./services/gmail-sub
 
     run-server:
         deps:
@@ -46,6 +49,11 @@ tasks:
             - build-messageToThread
         cmds:
             - ./messageToThread
+    run-gmail-sub:
+        deps:
+            - build-gmail-sub
+        cmds:
+            - ./gmail-sub
 
     migrate-postgres:
         cmds:
@@ -79,3 +87,4 @@ tasks:
             - run-gemini
             - run-tagsAndCats
             - run-messageToThread
+            - run-gmail-sub

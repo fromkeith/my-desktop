@@ -6,10 +6,12 @@ import (
 	"fromkeith/my-desktop-server/globals"
 	"fromkeith/my-desktop-server/gmail/data"
 	"net/mail"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/rs/zerolog/log"
 	"github.com/segmentio/kafka-go"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -17,7 +19,35 @@ import (
 	"google.golang.org/api/googleapi"
 )
 
-func (g *googleClient) SyncEmail(ctx context.Context, syncToken string) error {
+func (g *googleClient) SyncEmail(ctx context.Context) error {
+	var startHistoryId uint64
+	err := globals.Db().QueryRow(ctx, "SELECT historyId FROM GmailSyncStatus WHERE userId = $1", g.userId).Scan(&startHistoryId)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return g.SyncEmailSince(ctx, "0")
+		}
+		return err
+	}
+	return g.SyncEmailSince(ctx, strconv.FormatUint(startHistoryId, 10))
+}
+
+func (g *googleClient) SyncEmailUntil(ctx context.Context, endHistoryId uint64) error {
+	var startHistoryId uint64
+	err := globals.Db().QueryRow(ctx, "SELECT historyId FROM GmailSyncStatus WHERE userId = $1", g.userId).Scan(&startHistoryId)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return g.SyncEmailSince(ctx, "0")
+		}
+		return err
+	}
+	// no need to sync, we are already up to date
+	if startHistoryId >= endHistoryId {
+		return nil
+	}
+	return g.SyncEmailSince(ctx, strconv.FormatUint(startHistoryId, 10))
+}
+
+func (g *googleClient) SyncEmailSince(ctx context.Context, syncToken string) error {
 
 	emailInjest := globals.KafkaWriter("email_injest")
 	defer emailInjest.Close()
@@ -32,6 +62,7 @@ func (g *googleClient) SyncEmail(ctx context.Context, syncToken string) error {
 		Ctx(ctx).
 		Uint64("startHistory", startHistoryId).
 		Msg("SyncEmail")
+	found := 0
 
 	for {
 
@@ -48,11 +79,12 @@ func (g *googleClient) SyncEmail(ctx context.Context, syncToken string) error {
 		if err != nil {
 			return err
 		}
-		nextHistoryId = listRes.HistoryId
+		nextHistoryId = max(nextHistoryId, listRes.HistoryId)
 		if len(listRes.History) == 0 {
 			break
 		}
 		for _, history := range listRes.History {
+			found++
 			// new messages
 			for _, message := range history.MessagesAdded {
 				value, _ := json.Marshal(data.EmailInjestPayload{
@@ -110,33 +142,80 @@ func (g *googleClient) SyncEmail(ctx context.Context, syncToken string) error {
 			return err
 		}
 	}
+	log.Info().
+		Ctx(ctx).
+		Int("found", found).
+		Int("newWrites", len(writeQueue)).
+		Msg("SyncEmail")
 
-	_, err := globals.Db().Exec(ctx, `
+	row := globals.Db().QueryRow(ctx, `
 	INSERT INTO GmailSyncStatus (
 		userId,
 		historyId,
 		until,
-		lastSyncTime
-	) VALUES ($1, $2, $3, $4)
+		lastSyncTime,
+		pubSubExp,
+		pubSubCreated
+	) VALUES ($1, $2, $3, $4, $5, $6)
 	ON CONFLICT(userId) DO UPDATE SET
 		historyId = EXCLUDED.historyId,
 		until = LEAST(EXCLUDED.until, GmailSyncStatus.until),
-		lastSyncTime = GREATEST(EXCLUDED.lastSyncTime, GmailSyncStatus.lastSyncTime)
+		lastSyncTime = GREATEST(EXCLUDED.lastSyncTime, GmailSyncStatus.lastSyncTime),
+		pubSubExp = GREATEST(EXCLUDED.pubSubExp, GmailSyncStatus.pubSubExp),
+		pubSubCreated = GREATEST(EXCLUDED.pubSubCreated, GmailSyncStatus.pubSubCreated)
+	RETURNING pubSubExp, pubSubCreated
 		`,
 		g.userId,
 		nextHistoryId,
 		time.Now().UTC(),
 		time.Now().UTC(),
+		0,
+		time.Unix(0, 0),
 	)
+	var pubSubExp int64
+	var pubSubCreated time.Time
+	err := row.Scan(&pubSubExp, &pubSubCreated)
 	if err != nil {
 		log.Error().
 			Ctx(ctx).
 			Err(err).
 			Msg("Failed save sync status")
 	}
+	expiredAt := time.UnixMilli(pubSubExp)
+
+	// if our pub sub is about to expire... or we created the pub sub over a day ago..
+	// renew our watch
+	if expiredAt.Before(time.Now().Add(time.Hour*24)) || pubSubCreated.Before(time.Now().Add(-time.Hour*24)) {
+		g.emailSubscribe(ctx)
+	}
 
 	return nil
 
+}
+
+func (g *googleClient) emailSubscribe(ctx context.Context) {
+	watchReq := &gmail.WatchRequest{
+		TopicName: os.Getenv("GMAIL_PUB_SUB_TOPIC"),
+	}
+	resp, err := g.gmail.Users.Watch("me", watchReq).Do()
+	if err != nil {
+		log.Error().
+			Ctx(ctx).
+			Err(err).
+			Msg("Failed watch gmail")
+		return
+	}
+	_, err = globals.Db().Exec(ctx, `
+	UPDATE GmailSyncStatus SET
+		pubSubExp = GREATEST(pubSubExp, $2),
+		pubSubCreated = GREATEST(pubSubCreated, $3)
+	WHERE userId = $1
+
+		`,
+		g.userId,
+		resp.Expiration,
+		time.Now().UTC(),
+	)
 }
 
 // loads the first 500 messages
@@ -247,6 +326,7 @@ func (g *googleClient) BootstrapEmail(ctx context.Context) error {
 			Err(err).
 			Msg("Failed to save sync status in bootstrap")
 	}
+	g.emailSubscribe(ctx)
 
 	return nil
 }

@@ -5,6 +5,7 @@
     import { getContext } from "svelte";
     import { dateFormat } from "$lib/pods/EmailListPod";
     import EmailLabels from "./EmailLabels.svelte";
+    import { unnumerializeText } from "$lib/utils/text";
 
     let {
         thread,
@@ -60,6 +61,7 @@
         }
         return Array.from(labelSet);
     });
+    let snippet = $derived(unnumerializeText(mostRecentMessage?.snippet ?? ""));
 </script>
 
 <div class="flex w-full mb-2 items-center" class:opacity-70={isRead}>
@@ -76,7 +78,7 @@
         </div>
         <div class="truncate text-sm">{mostRecentMessage.subject}</div>
         <div class="text-xs truncate opacity-70">
-            {mostRecentMessage.snippet}
+            {snippet}
         </div>
     </a>
     <div class="w-16 overflow-hidden text-right pv-1">

@@ -143,7 +143,7 @@ func flush(ctx context.Context, writeWait map[string]refreshReq) {
 			Msg("syncing account")
 
 		if req.gmail {
-			client.SyncEmail(ctx, gmailSyncToken)
+			client.SyncEmailSince(ctx, gmailSyncToken)
 		}
 		if req.contacts {
 			client.SyncPeople(ctx, contactsSyncToken)
