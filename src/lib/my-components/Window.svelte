@@ -129,6 +129,10 @@
     function didClick() {
         windowProvider().moveToTop(window.windowId);
     }
+
+    let cardContentClass = $derived(
+        "overflow-hidden h-full " + (scrollable ? "pr-0" : ""),
+    );
 </script>
 
 <div
@@ -157,9 +161,9 @@
                 </WindowBar>
             </Card.Header>
 
-            <Card.Content class="overflow-hidden h-full">
+            <Card.Content class={cardContentClass}>
                 {#if scrollable}
-                    <ScrollArea class="h-full">
+                    <ScrollArea class="h-full pr-6">
                         {@render content()}
                     </ScrollArea>
                 {:else}
