@@ -16,7 +16,7 @@
     };
 </script>
 
-<Window {window}>
+<Window {window} title="Login">
     {#snippet content()}
         <p>Login to My Desktop</p>
         <OAuth />

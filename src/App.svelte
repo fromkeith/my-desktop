@@ -3,7 +3,9 @@
 
     import { windowListProvider } from "$lib/pods/WindowsPod";
     import { isAuthValidProvider } from "$lib/pods/AuthPod";
-    import { WindowType } from "$lib/models";
+    import { WindowType, type IWindow } from "$lib/models";
+    import { type Component } from "svelte";
+    import type { Readable } from "svelte/store";
 
     import EmailListWindow from "$lib/my-components/EmailListWindow.svelte";
     import ComposeEmailWindow from "$lib/my-components/ComposeEmailWindow.svelte";
@@ -17,18 +19,18 @@
     import CategoriesWindow from "$lib/my-components/CategoriesWindow.svelte";
     import TagsWindow from "$lib/my-components/TagsWindow.svelte";
 
-    const registery: Record<string, ConstructorOfATypedSvelteComponent> = {
-        [WindowType.EmailList.toString()]: EmailListWindow,
-        [WindowType.ComposeEmail.toString()]: ComposeEmailWindow,
-        [WindowType.EmailContents.toString()]: EmailContentsWindow,
-        [WindowType.ContactList.toString()]: ContactListWindow,
-        [WindowType.CategoryList.toString()]: CategoriesWindow,
-        [WindowType.TagList.toString()]: TagsWindow,
-    };
-    $: windows = windowListProvider();
-    $: isAuthValid = isAuthValidProvider();
-    $: authLoading = isAuthValid.isLoading;
-    //
+    const registry = {
+        [WindowType.EmailList]: EmailListWindow,
+        [WindowType.ComposeEmail]: ComposeEmailWindow,
+        [WindowType.EmailContents]: EmailContentsWindow,
+        [WindowType.ContactList]: ContactListWindow,
+        [WindowType.CategoryList]: CategoriesWindow,
+        [WindowType.TagList]: TagsWindow,
+        [WindowType.LoginEmail]: LoginWindow,
+    } satisfies Record<WindowType, Component<any>>;
+    let windows: Readable<IWindow[]> = windowListProvider();
+    let isAuthValid = isAuthValidProvider();
+    let authLoading = $derived(isAuthValid.isLoading);
 </script>
 
 <main class="w-screen h-screen">
@@ -43,11 +45,8 @@
         <DesktopCommandBar />
         <DesktopIcons />
         {#each $windows as w (w.windowId)}
-            <svelte:component
-                this={registery[w.type]}
-                window={w}
-                {...w.props}
-            />
+            {@const ComponentInst: Component<any> = registry[w.type]}
+            <ComponentInst window={w} {...w.props} />
         {/each}
     {/if}
 </main>

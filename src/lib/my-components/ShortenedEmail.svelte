@@ -6,9 +6,11 @@
     const {
         contact,
         highlight,
+        onclick,
     }: {
         contact: IPersonInfo;
         highlight: { tooltip: string; class: string } | undefined;
+        onclick?: () => void;
     } = $props();
 
     let highlightClass = $derived(highlight?.class || "");
@@ -16,7 +18,7 @@
 
 <Tooltip.Provider>
     <Tooltip.Root>
-        <Tooltip.Trigger class={highlightClass}
+        <Tooltip.Trigger class={highlightClass} {onclick}
             >{contact.name || contact.email}</Tooltip.Trigger
         >
         <Tooltip.Content>

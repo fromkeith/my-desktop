@@ -11,6 +11,7 @@
         onremove,
         highlight = new Map(),
         hideCounter = false,
+        clickContact,
     }: {
         contacts: IPersonInfo[];
         doCopy?: boolean;
@@ -18,6 +19,7 @@
         onremove?: (c: IPersonInfo) => void;
         highlight?: Map<number, { tooltip: string; class: string }>;
         hideCounter?: boolean;
+        clickContact?: (c: IPersonInfo, index: number) => void;
     } = $props();
 
     let expanded = $state(false);
@@ -58,6 +60,7 @@
                     {doCopy}
                     {contact}
                     {onremove}
+                    onclick={() => clickContact?.(contact, idx)}
                     highlight={highlight.get(idx)}
                 />
             {/each}

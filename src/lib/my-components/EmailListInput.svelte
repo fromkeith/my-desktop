@@ -7,10 +7,12 @@
         contacts,
         name,
         errors,
+        placeholder,
     }: {
         contacts: IPersonInfo[] | string;
         name: string;
         errors: string | undefined;
+        placeholder: string | undefined;
     } = $props();
 
     const { field, onInput, onBlur } = createField(name, {
@@ -83,6 +85,7 @@
         // save and propagate
         if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
+            e.stopPropagation();
             const v = currentInput.trim();
             if (v.length > 0) {
                 addContact(v);
@@ -90,11 +93,24 @@
             currentInput = "";
         }
     }
+    function inputBlur() {
+        onBlur();
+        const v = currentInput.trim();
+        if (v.length > 0) {
+            addContact(v);
+        }
+        currentInput = "";
+    }
     function removeContact(e: IPersonInfo) {
         const updated = contactsArray.filter(
             (contact) => contact.email !== e.email,
         );
         onInput(JSON.stringify(updated));
+    }
+    function clickContact(contact: IPersonInfo, index: number) {
+        removeContact(contact);
+        currentInput = contact.email;
+        textInput.focus();
     }
     //.
 </script>
@@ -105,14 +121,17 @@
     class="border-input bg-background selection:bg-primary dark:bg-input/30 selection:text-primary-foreground ring-offset-background placeholder:text-muted-foreground shadow-xs flex min-h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base outline-none transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive flex-wrap cursor-text"
     onclick={focusText}
 >
-    <div class="w-full">
-        <ShortenedEmailList
-            contacts={contactsArray}
-            doClose={true}
-            onremove={removeContact}
-            highlight={errorsMap}
-        />
-    </div>
+    {#if (contactsArray?.length ?? 0) > 0}
+        <div class="w-full">
+            <ShortenedEmailList
+                contacts={contactsArray}
+                doClose={true}
+                onremove={removeContact}
+                highlight={errorsMap}
+                {clickContact}
+            />
+        </div>
+    {/if}
     <div class="flex w-full">
         <input
             bind:this={textInput}
@@ -122,7 +141,8 @@
             onkeydown={inputKeyDown}
             onkeyup={inputKeyUp}
             id={name}
-            onblur={onBlur}
+            onblur={inputBlur}
+            {placeholder}
         />
     </div>
     {#if generalError}

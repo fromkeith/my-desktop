@@ -2,6 +2,7 @@
     import * as ButtonGroup from "$lib/components/ui/button-group/index.js";
     import { Button } from "$lib/components/ui/button/index.js";
     import { Tipex } from "@friendofsvelte/tipex";
+    import TipexControls from "$lib/my-components/TipexControls.svelte";
     import * as Field from "$lib/components/ui/field/index.js";
     import { Input } from "$lib/components/ui/input/index.js";
     import SendIcon from "@lucide/svelte/icons/send";
@@ -26,7 +27,8 @@
         srcEmail: IComposeEmailMeta;
     } = $props();
 
-    onMount(async () => {});
+    let showCc = $state(false);
+    let showBcc = $state(false);
 
     // there are more store that could help with submitting
     let { form, data, errors, validate } = createForm({
@@ -108,41 +110,68 @@
             }
         });
     }
+    function toggleCc(e: PointerEvent) {
+        // for some reason... a click event is being triggered
+        // when we hit enter on the EmailListInput
+        if (e.pointerId === -1) {
+            return;
+        }
+        showCc = !showCc;
+    }
 </script>
 
 <div class="h-full flex flex-col">
     <form use:form>
         <Field.Group class="gap-1 mb-1">
             <Field.Field orientation="horizontal">
-                <Field.Label for="to" class="min-w-12">To</Field.Label>
                 <EmailListInput
                     aria-label="Add To Email Address"
                     contacts={$data.to}
                     errors={$errors.to}
+                    placeholder="Send To"
                     name="to"
                 />
             </Field.Field>
+            {#if !showCc || !showBcc}
+                <div class="text-sm text-gray-500 text-right">
+                    Add
+                    {#if !showCc}
+                        <button
+                            class="underline text-blue-600 hover:text-blue-800 inline-block"
+                            onclick={toggleCc}>CC</button
+                        >
+                    {/if}
+                    {#if !showBcc}
+                        <button
+                            class="underline text-blue-600 hover:text-blue-800 inline-block"
+                            onclick={() => (showBcc = true)}>BCC</button
+                        >
+                    {/if}
+                </div>
+            {/if}
 
+            {#if showCc}
+                <Field.Field orientation="horizontal">
+                    <EmailListInput
+                        aria-label="Add CC Email Address"
+                        contacts={$data.cc}
+                        errors={$errors.cc}
+                        name="cc"
+                        placeholder="Cc"
+                    />
+                </Field.Field>
+            {/if}
+            {#if showBcc}
+                <Field.Field orientation="horizontal">
+                    <EmailListInput
+                        contacts={$data.bcc}
+                        name="bcc"
+                        errors={$errors.bcc}
+                        placeholder="Bcc"
+                    />
+                </Field.Field>
+            {/if}
             <Field.Field orientation="horizontal">
-                <Field.Label for="cc" class="min-w-12">Cc</Field.Label>
-                <EmailListInput
-                    aria-label="Add CC Email Address"
-                    contacts={$data.cc}
-                    errors={$errors.cc}
-                    name="cc"
-                />
-            </Field.Field>
-            <Field.Field orientation="horizontal">
-                <Field.Label for="bcc" class="min-w-12">Bcc</Field.Label>
-                <EmailListInput
-                    contacts={$data.bcc}
-                    name="bcc"
-                    errors={$errors.bcc}
-                />
-            </Field.Field>
-            <Field.Field orientation="horizontal">
-                <Field.Label for="subject" class="min-w-12">Subject</Field.Label
-                >
                 <div
                     class="border-input bg-background selection:bg-primary dark:bg-input/30 selection:text-primary-foreground ring-offset-background placeholder:text-muted-foreground shadow-xs flex min-h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base outline-none transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive flex-wrap cursor-text"
                 >
@@ -150,6 +179,7 @@
                         id="subject"
                         name="subject"
                         class="border-none outline-0 focus:outline-0 w-full"
+                        placeholder="Subject"
                     />
                     {#if $errors.subject}
                         <div class="text-red-500">
@@ -160,7 +190,20 @@
             </Field.Field>
         </Field.Group>
     </form>
-    <Tipex {body} floating class="grow" />
+    <Tipex {body} floating class="grow email-tipex-editor">
+        {#snippet controlComponent(tipex)}
+            <TipexControls {tipex}>
+                <!-- Built-in utilities: copy HTML and link editing with clipboard integration -->
+                <!-- Additional utility buttons can be added here -->
+                <button
+                    class="tipex-edit-button tipex-button-rigid"
+                    aria-label="Custom action"
+                >
+                    hello
+                </button>
+            </TipexControls>
+        {/snippet}
+    </Tipex>
     <div class="mt-1 flex justify-end">
         <ButtonGroup.Root>
             <Button

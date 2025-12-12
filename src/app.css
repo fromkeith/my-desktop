@@ -135,3 +135,27 @@ body {
         20px 20px,
         0 20px; /* Positioning for the gradients */
 }
+
+@theme {
+    --color-tipex-50: #fff;
+    --color-tipex-100: oklch(0.97 0 0);
+    --color-tipex-200: oklch(0.922 0 0);
+    --color-tipex-300: oklch(0.87 0 0);
+    --color-tipex-400: oklch(0.708 0 0);
+    --color-tipex-500: oklch(0.556 0 0);
+    --color-tipex-600: oklch(0.439 0 0);
+    --color-tipex-700: oklch(0.371 0 0);
+    --color-tipex-800: oklch(0.269 0 0);
+    --color-tipex-900: oklch(0.205 0 0);
+    --color-tipex-950: oklch(0.145 0 0);
+}
+
+@layer components {
+    .tipex-editor-section .ProseMirror {
+        @apply outline-none px-tipex-sm pb-tipex-sm h-full text-tipex-900 dark:text-tipex-100;
+    }
+    .tipex-editor-section .ProseMirror a[href] {
+        color: var(--color-blue-600);
+        text-decoration: underline;
+    }
+}
