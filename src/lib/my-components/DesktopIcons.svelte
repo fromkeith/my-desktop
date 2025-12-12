@@ -63,60 +63,62 @@
     }
 </script>
 
-<DesktopIcon name="Inbox" onclick={openInbox}>
-    {#snippet icon()}
-        <InboxIcon class="size-12" />
-    {/snippet}
-</DesktopIcon>
+<div class="flex flex-col flex-wrap mt-10">
+    <DesktopIcon name="Inbox" onclick={openInbox}>
+        {#snippet icon()}
+            <InboxIcon class="size-8" />
+        {/snippet}
+    </DesktopIcon>
 
-<DesktopIcon
-    name="Promotions"
-    onclick={() =>
-        openWithLabels(["CATEGORY_PROMOTIONS", "-SPAM"], "Promotions")}
->
-    {#snippet icon()}
-        <StoreIcon class="size-12" />
-    {/snippet}
-</DesktopIcon>
+    <DesktopIcon
+        name="Promotions"
+        onclick={() =>
+            openWithLabels(["CATEGORY_PROMOTIONS", "-SPAM"], "Promotions")}
+    >
+        {#snippet icon()}
+            <StoreIcon class="size-8" />
+        {/snippet}
+    </DesktopIcon>
 
-<DesktopIcon
-    name="Updates"
-    onclick={() => openWithLabels(["CATEGORY_UPDATES", "-SPAM"], "Updates")}
->
-    {#snippet icon()}
-        <NewsPaperIcon class="size-12" />
-    {/snippet}
-</DesktopIcon>
+    <DesktopIcon
+        name="Updates"
+        onclick={() => openWithLabels(["CATEGORY_UPDATES", "-SPAM"], "Updates")}
+    >
+        {#snippet icon()}
+            <NewsPaperIcon class="size-8" />
+        {/snippet}
+    </DesktopIcon>
 
-<DesktopIcon
-    name="Social"
-    onclick={() => openWithLabels(["CATEGORY_SOCIAL", "-SPAM"], "Social")}
->
-    {#snippet icon()}
-        <MessageCircleIcon class="size-12" />
-    {/snippet}
-</DesktopIcon>
+    <DesktopIcon
+        name="Social"
+        onclick={() => openWithLabels(["CATEGORY_SOCIAL", "-SPAM"], "Social")}
+    >
+        {#snippet icon()}
+            <MessageCircleIcon class="size-8" />
+        {/snippet}
+    </DesktopIcon>
 
-<DesktopIcon name="Contacts" onclick={openContacts}>
-    {#snippet icon()}
-        <ContactRoundIcon class="size-12" />
-    {/snippet}
-</DesktopIcon>
+    <DesktopIcon name="Contacts" onclick={openContacts}>
+        {#snippet icon()}
+            <ContactRoundIcon class="size-8" />
+        {/snippet}
+    </DesktopIcon>
 
-<DesktopIcon name="Sync" onclick={doSync}>
-    {#snippet icon()}
-        <RefreshCcwIcon class="size-12" />
-    {/snippet}
-</DesktopIcon>
+    <DesktopIcon name="Sync" onclick={doSync}>
+        {#snippet icon()}
+            <RefreshCcwIcon class="size-8" />
+        {/snippet}
+    </DesktopIcon>
 
-<DesktopIcon name="Categories" onclick={openCategories}>
-    {#snippet icon()}
-        <LibraryIcon class="size-12" />
-    {/snippet}
-</DesktopIcon>
+    <DesktopIcon name="Categories" onclick={openCategories}>
+        {#snippet icon()}
+            <LibraryIcon class="size-8" />
+        {/snippet}
+    </DesktopIcon>
 
-<DesktopIcon name="Tags" onclick={openTags}>
-    {#snippet icon()}
-        <TagsIcon class="size-12" />
-    {/snippet}
-</DesktopIcon>
+    <DesktopIcon name="Tags" onclick={openTags}>
+        {#snippet icon()}
+            <TagsIcon class="size-8" />
+        {/snippet}
+    </DesktopIcon>
+</div>

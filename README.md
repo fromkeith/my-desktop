@@ -141,6 +141,7 @@ Some people have good experiences with MSYS2: https://www.msys2.org/. After inst
         - `gemini` - Triggered off a new email. Runs the email through Gemini, and saves the vectors, categories, and tags to MongoDB.
         - `tagsAndCats` - Listens to MongoDB "Messages". Makes categories and tags searchable + keeps a counter for each account.
         - `messageToThread` - Listens to MongoDB "Messages". Puts messages into "MessageThreads" collection.
+        - `gmail-sub` - Pulls from PubSub to get email changes pushed by google.
 
 # TODO
 

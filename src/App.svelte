@@ -6,6 +6,7 @@
     import { WindowType, type IWindow } from "$lib/models";
     import { type Component } from "svelte";
     import type { Readable } from "svelte/store";
+    import Pacific from "$assets/aigen/pacific.png";
 
     import EmailListWindow from "$lib/my-components/EmailListWindow.svelte";
     import ComposeEmailWindow from "$lib/my-components/ComposeEmailWindow.svelte";
@@ -33,7 +34,10 @@
     let authLoading = $derived(isAuthValid.isLoading);
 </script>
 
-<main class="w-screen h-screen">
+<main
+    class="w-screen h-screen bg-cover bg-center bg-no-repeat"
+    style="background-image: url('{Pacific}')"
+>
     .
     {#if !$isAuthValid}
         {#if $authLoading}
