@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hibiken/asynq"
 	"github.com/jackc/pgx/v5"
 	"github.com/rs/zerolog/log"
-	"github.com/segmentio/kafka-go"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"google.golang.org/api/gmail/v1"
 	"google.golang.org/api/googleapi"
@@ -49,9 +49,7 @@ func (g *googleClient) SyncEmailUntil(ctx context.Context, endHistoryId uint64) 
 
 func (g *googleClient) SyncEmailSince(ctx context.Context, syncToken string) error {
 
-	emailInjest := globals.KafkaWriter("email_injest")
-	defer emailInjest.Close()
-	writeQueue := make([]kafka.Message, 0, 50)
+	writeQueue := make([]data.EmailInjestPayload, 0, 50)
 
 	var startHistoryId uint64
 	startHistoryId, _ = strconv.ParseUint(syncToken, 10, 64)
@@ -87,26 +85,12 @@ func (g *googleClient) SyncEmailSince(ctx context.Context, syncToken string) err
 			found++
 			// new messages
 			for _, message := range history.MessagesAdded {
-				value, _ := json.Marshal(data.EmailInjestPayload{
+				value := data.EmailInjestPayload{
 					MessageId: message.Message.Id,
 					AccountId: g.accountId,
 					UserId:    g.userId,
-				})
-				msg := kafka.Message{
-					Key:   []byte(g.accountId + ";" + message.Message.Id),
-					Value: value,
 				}
-				writeQueue = append(writeQueue, msg)
-				if len(writeQueue) >= 50 {
-					if err := emailInjest.WriteMessages(ctx, writeQueue...); err != nil {
-						log.Error().
-							Ctx(ctx).
-							Err(err).
-							Msg("Failed write MessagesAdded to Kafka")
-						return err
-					}
-					writeQueue = writeQueue[:0]
-				}
+				writeQueue = append(writeQueue, value)
 			}
 			// deleted messages.. not trashed.. actually deleted
 			for _, message := range history.MessagesDeleted {
@@ -134,13 +118,7 @@ func (g *googleClient) SyncEmailSince(ctx context.Context, syncToken string) err
 
 	}
 	if len(writeQueue) >= 0 {
-		if err := emailInjest.WriteMessages(ctx, writeQueue...); err != nil {
-			log.Error().
-				Ctx(ctx).
-				Err(err).
-				Msg("Failed write MessagesAdded to Kafka (2)")
-			return err
-		}
+		publishToInjestor(ctx, writeQueue)
 	}
 	log.Info().
 		Ctx(ctx).
@@ -233,9 +211,8 @@ func (g *googleClient) BootstrapEmail(ctx context.Context) error {
 			Msg("Failed to get user baseline")
 		return err
 	}
-	emailInjest := globals.KafkaWriter("email_injest")
-	defer emailInjest.Close()
-	writeQueue := make([]kafka.Message, 0, 50)
+
+	writeQueue := make([]data.EmailInjestPayload, 0, 50)
 
 	lastHistoryId := prof.HistoryId
 
@@ -263,26 +240,12 @@ func (g *googleClient) BootstrapEmail(ctx context.Context) error {
 			break
 		}
 		for _, m := range listRes.Messages {
-			value, _ := json.Marshal(data.EmailInjestPayload{
+			value := data.EmailInjestPayload{
 				MessageId: m.Id,
 				AccountId: g.accountId,
 				UserId:    g.userId,
-			})
-			msg := kafka.Message{
-				Key:   []byte(g.accountId + ";" + m.Id),
-				Value: value,
 			}
-			writeQueue = append(writeQueue, msg)
-			if len(writeQueue) >= 50 {
-				if err := emailInjest.WriteMessages(ctx, writeQueue...); err != nil {
-					log.Error().
-						Ctx(ctx).
-						Err(err).
-						Msg("Failed to write Bootstrap Messages to Kafka")
-					return err
-				}
-				writeQueue = writeQueue[:0]
-			}
+			writeQueue = append(writeQueue, value)
 			remaining--
 		}
 
@@ -291,14 +254,9 @@ func (g *googleClient) BootstrapEmail(ctx context.Context) error {
 		}
 		pageToken = listRes.NextPageToken
 	}
+	// if there is stuff to write to the queue... write it
 	if len(writeQueue) > 0 {
-		if err := emailInjest.WriteMessages(ctx, writeQueue...); err != nil {
-			log.Error().
-				Ctx(ctx).
-				Err(err).
-				Msg("Failed to write Bootstrap Messages to Kafka (2)")
-			return err
-		}
+		publishToInjestor(ctx, writeQueue)
 	}
 
 	_, err = globals.Db().Exec(ctx, `
@@ -561,4 +519,17 @@ func (g *googleClient) UpdateMessage(ctx context.Context, messageId string, modi
 func (g *googleClient) BulkUpdateMessages(ctx context.Context, batchReq *gmail.BatchModifyMessagesRequest) error {
 	err := g.gmail.Users.Messages.BatchModify(g.userId, batchReq).Context(ctx).Do()
 	return err
+}
+
+func publishToInjestor(ctx context.Context, writeQueue []data.EmailInjestPayload) error {
+	client := globals.Asynq()
+
+	for _, msg := range writeQueue {
+		bytes, _ := json.Marshal(msg)
+		task := asynq.NewTask("emails:injest", bytes)
+		if _, err := client.EnqueueContext(ctx, task); err != nil {
+			return err
+		}
+	}
+	return nil
 }

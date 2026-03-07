@@ -73,6 +73,9 @@ func StartWriter(ctx context.Context) {
 	writeWait := make([]GmailEntry, 0, 100)
 	modifyWait := make([]modifyGmailEntry, 0, 100)
 
+	defer close(writerQueue)
+	defer close(modifyQueue)
+
 	for {
 		select {
 		case entry := <-writerQueue:

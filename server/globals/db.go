@@ -45,6 +45,10 @@ func CloseAll() {
 		kafkaConn.Close()
 		kafkaConn = nil
 	}
+	if asynqClient != nil {
+		asynqClient.Close()
+		asynqClient = nil
+	}
 	closeLogger()
 }
 

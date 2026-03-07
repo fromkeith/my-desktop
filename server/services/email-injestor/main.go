@@ -2,20 +2,24 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fromkeith/my-desktop-server/globals"
 	"fromkeith/my-desktop-server/gmail/client"
 	"fromkeith/my-desktop-server/gmail/data"
 	"fromkeith/my-desktop-server/services/helpers"
-	"io"
 	"time"
 
+	"github.com/hibiken/asynq"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/rs/zerolog/log"
 	"github.com/segmentio/kafka-go"
+	"github.com/wagslane/go-rabbitmq"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
+
+const (
+	queueName = "injestor"
+)
 
 func main() {
 	log.Info().
@@ -23,57 +27,46 @@ func main() {
 	globals.SetupJsonEncoding()
 	defer globals.CloseAll()
 
-	r := globals.KafkaConsumerGroup("email_injest", "fetch")
-	defer r.Close()
-	dead := globals.KafkaWriter("email_inject_dlq")
-	defer dead.Close()
+	ctx := context.WithValue(context.Background(), "service", "email-injestor")
+
+	srv := asynq.NewServer(
+		asynq.RedisClientOpt{
+			Addr: globals.AsyncAddr(),
+		},
+		asynq.Config{
+			Concurrency: 10,
+			BaseContext: func() context.Context {
+				return ctx
+			},
+			// which queues we want to listen to
+			Queues: map[string]int {
+				"emails:injest": 10,
+			},
+			// TODO: create a logger that maps to zerolog
+			// Logger: log.,
+		},
+	)
+
+	mux := asynq.NewServeMux()
+	mux.HandleFunc("emails:injest", HandleEmailInjest)
+
 	available := globals.KafkaWriter("email_injest_available")
 	defer available.Close()
 
-	ctx := context.WithValue(context.Background(), "service", "email-injestor")
+	if err := srv.Run(mux); err != nil {
+		log.Fatal().Stack().Err(err).Msg("could not run asynq server")
+	}
+}
 
-	for {
-		log.Info().
-			Ctx(ctx).
-			Msg("Waiting for messages")
-		msgs, err := helpers.FetchBatch(ctx, r, 10, time.Second)
-		if err != nil {
-			if errors.Is(err, context.Canceled) || errors.Is(err, io.EOF) {
-				log.Info().
-					Ctx(ctx).
-					Msg("context canceled; exiting")
-				break
-			}
-			var kerr *kafka.Error
-			if errors.As(err, &kerr) && kerr.Temporary() {
-				log.Warn().
-					Ctx(ctx).
-					Err(err).
-					Msg("temporary kafka error")
-				continue
-			}
-			if errors.Is(err, io.ErrClosedPipe) {
-				log.Info().
-					Ctx(ctx).
-					Err(err).
-					Msg("reader closed; exiting")
-				break
-			}
-			log.Printf("fetch error: %v", err)
-			continue
-		}
-		log.Info().
-			Ctx(ctx).
-			Int("count", len(msgs)).
-			Msg("Got messages")
+func HandleEmailInjest(ctx context.Context, t *asynq.Task) error {
 
-		failed := make([]kafka.Message, 0)
 		entries := make([]data.GmailEntry, 0, len(msgs))
 		bodies := make([]data.GmailEntryBody, 0, len(msgs))
+		success := make([]rabbitmq.Delivery, 0, len(msgs))
 		for _, msg := range msgs {
 			log.Info().
 				Ctx(ctx).
-				Str("taskId", string(msg.Key)).
+				Str("taskId", string(msg.MessageId)).
 				Msg("processing message")
 
 			entry, body, err := fetchEmail(ctx, msg)
@@ -81,13 +74,20 @@ func main() {
 				log.Error().
 					Ctx(ctx).
 					Err(err).
-					Str("taskId", string(msg.Key)).
+					Str("taskId", string(msg.MessageId)).
 					Msg("failed to fetch message")
-				failed = append(failed, msg)
+				if err := helpers.RequeueMessage(ctx, queueName, msg); err != nil {
+					log.Error().
+						Ctx(ctx).
+						Err(err).
+						Str("taskId", string(msg.MessageId)).
+						Msg("failed to requeue message")
+				}
 				continue
 			}
 			entries = append(entries, *entry)
 			bodies = append(bodies, *body)
+			success = append(success, msg)
 		}
 
 		if len(entries) > 0 {
@@ -113,37 +113,23 @@ func main() {
 					Msg("failed to write messages to available topic. Messages lost!")
 			}
 		}
-		// TODO: order of writing to DLQ vs committing
-		// if the DLQ fails? should we just not commit anything?
-		if err := r.CommitMessages(ctx, msgs...); err != nil {
-			log.Error().
-				Ctx(ctx).
-				Err(err).
-				Msg("Failed to commit messages")
-		}
-		if len(failed) > 0 {
-			for i, f := range failed {
-				// overwrite topic and other metadata
-				failed[i] = kafka.Message{
-					Key:     f.Key,
-					Value:   f.Value,
-					Headers: f.Headers,
-				}
-			}
-			if err := dead.WriteMessages(ctx, failed...); err != nil {
+
+		for _, s := range success {
+			if err := s.Ack(false); err != nil {
 				log.Error().
 					Ctx(ctx).
 					Err(err).
-					Msg("failed to write messages to dead topic. Messages lost!")
+					Msg("failed to ack message as success")
 			}
 		}
 	}
+
 }
 
-func fetchEmail(ctx context.Context, msg kafka.Message) (*data.GmailEntry, *data.GmailEntryBody, error) {
+func fetchEmail(ctx context.Context, msg rabbitmq.Delivery) (*data.GmailEntry, *data.GmailEntryBody, error) {
 	// log.Debug().Str("payload", string(msg.Value)).Msg("kafka payload")
 	var payload data.EmailInjestPayload
-	if err := json.Unmarshal(msg.Value, &payload); err != nil {
+	if err := json.Unmarshal(msg.Body, &payload); err != nil {
 		return nil, nil, err
 	}
 	client, err := client.GmailClient(ctx, payload.AccountId)

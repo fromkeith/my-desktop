@@ -105,6 +105,18 @@ services:
             PGADMIN_DEFAULT_PASSWORD: admin
         volumes:
             - ./.pgadmin-data:/var/lib/pgadmin
+    rabbitmq:
+        image: rabbitmq:4.2-management
+        container_name: rabbitmq_container
+        restart: always
+        environment:
+            RABBITMQ_DEFAULT_USER: admin
+            RABBITMQ_DEFAULT_PASS: admin
+        ports:
+            - "5672:5672"
+            - "15672:15672"
+        volumes:
+            - ./.rabbitmq-data:/var/lib/rabbitmq/mnesia
 
 networks:
     mongo-stack:
