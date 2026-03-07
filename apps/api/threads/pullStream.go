@@ -3,6 +3,7 @@ package threads
 import (
 	"context"
 	"fromkeith/my-desktop-server/shared/globals"
+	"fromkeith/my-desktop-server/shared/threads"
 	"fromkeith/my-desktop-server/shared/utils"
 	"io"
 	"time"
@@ -59,7 +60,7 @@ func PullStream(r *gin.Context) {
 			}
 		case batch := <-batchChan:
 			log.Info().Msg("pullStream for threads had batch")
-			payloads := make([]ThreadEntry, 0, len(batch))
+			payloads := make([]threads.ThreadEntry, 0, len(batch))
 			chkPoint := SyncCheckpoint{}
 			for _, ev := range batch {
 				full, ok := ev["fullDocument"]
@@ -68,7 +69,7 @@ func PullStream(r *gin.Context) {
 					return true
 				}
 				raw, _ := bson.Marshal(full)
-				var thread ThreadEntry
+				var thread threads.ThreadEntry
 				if err := bson.Unmarshal(raw, &thread); err != nil {
 					log.Error().
 						Ctx(r).

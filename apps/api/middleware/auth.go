@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"fromkeith/my-desktop-server/shared/auth"
+	"fromkeith/my-desktop-server/apps/api/auth"
 	"net/http"
 	"strings"
 

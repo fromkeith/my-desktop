@@ -2,15 +2,16 @@ package main
 
 import (
 	"context"
+	api_client "fromkeith/my-desktop-server/apps/api/gmail/client"
 	"fromkeith/my-desktop-server/apps/api/messages"
 	"fromkeith/my-desktop-server/apps/api/messages/aggregate"
 	"fromkeith/my-desktop-server/apps/api/middleware"
 	"fromkeith/my-desktop-server/apps/api/people"
+	"fromkeith/my-desktop-server/apps/api/threads"
 	"fromkeith/my-desktop-server/shared/globals"
 	_ "fromkeith/my-desktop-server/shared/globals"
 	"fromkeith/my-desktop-server/shared/gmail/client"
 	"fromkeith/my-desktop-server/shared/gmail/data"
-	"fromkeith/my-desktop-server/shared/threads"
 
 	"github.com/rs/zerolog/log"
 
@@ -55,8 +56,8 @@ func main() {
 	r.Use(middleware.RequestId())
 	r.Use(middleware.AuthTokenExtract())
 
-	r.GET("/api/gmail/start", client.HandleAuthStart)
-	r.GET("/api/gmail/callback", client.HandleCallback)
+	r.GET("/api/gmail/start", api_client.HandleAuthStart)
+	r.GET("/api/gmail/callback", api_client.HandleCallback)
 	r.GET("/api/gmail/inbox", ListInbox)
 	// TODO: maybe this is just another list query? they return basically the same thing
 	r.GET("/api/gmail/thread/:threadId", ListThread)

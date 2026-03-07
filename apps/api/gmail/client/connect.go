@@ -3,66 +3,29 @@ package client
 import (
 	"context"
 	"encoding/base64"
-	"fromkeith/my-desktop-server/shared/auth"
+	"fromkeith/my-desktop-server/apps/api/auth"
+	api_oauth "fromkeith/my-desktop-server/apps/api/oauth"
 	"fromkeith/my-desktop-server/shared/globals"
+	shared_client "fromkeith/my-desktop-server/shared/gmail/client"
 	oauth_basic "fromkeith/my-desktop-server/shared/oauth"
 	"fromkeith/my-desktop-server/shared/utils"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-	"google.golang.org/api/gmail/v1"
-	"google.golang.org/api/people/v1"
 )
-
-var (
-	oauthConfig  *oauth2.Config
-	oidcProvider *oidc.Provider
-	oidcVerifier *oidc.IDTokenVerifier
-)
-
-func init() {
-	creds := os.Getenv("GOOGLE_CREDENTIALS")
-	var err error
-	oauthConfig, err = google.ConfigFromJSON([]byte(creds),
-		gmail.GmailModifyScope,
-		gmail.GmailSendScope,
-		gmail.GmailComposeScope,
-		gmail.GmailLabelsScope,
-		"openid",
-		"email", "profile",
-		people.ContactsReadonlyScope,
-		people.ContactsOtherReadonlyScope,
-		people.DirectoryReadonlyScope,
-	)
-	if err != nil {
-		log.Fatal().
-			Stack().
-			Err(err).
-			Msg("Unable to parse client secret to config")
-
-	}
-	oidcProvider, err = oidc.NewProvider(context.Background(), "https://accounts.google.com")
-	if err != nil {
-		panic(err)
-	}
-	oidcVerifier = oidcProvider.Verifier(&oidc.Config{ClientID: oauthConfig.ClientID})
-
-}
 
 func HandleAuthStart(r *gin.Context) {
 	state := utils.RandB64(32)
 	codeVerifier := utils.RandB64(64)
 	nonce := utils.RandB64(32)
 
-	err := oauth_basic.SaveSession(r, map[string]string{
+	err := api_oauth.SaveSession(r, map[string]string{
 		"state":            state,
 		"code_verifier":    codeVerifier,
 		"post_auth_return": r.Query("return_to"),
@@ -78,7 +41,7 @@ func HandleAuthStart(r *gin.Context) {
 	}
 
 	codeChallenge := base64.RawURLEncoding.EncodeToString(utils.Sha256Bytes(codeVerifier))
-	url := oauthConfig.AuthCodeURL(
+	url := shared_client.OauthConfig.AuthCodeURL(
 		state,
 		oauth2.AccessTypeOffline,
 		oauth2.SetAuthURLParam("prompt", "consent"),
@@ -94,10 +57,6 @@ func loadGmailTokenRecord(r *gin.Context, accountId string) (*oauth_basic.TokenR
 	return oauth_basic.LoadTokenRecord(r, accountId, "google")
 }
 
-func SaveGmailTokenRecord(r context.Context, accountId string, rec oauth_basic.TokenRecord) error {
-	return oauth_basic.SaveTokenRecord(r, accountId, rec)
-}
-
 // https://developers.google.com/identity/openid-connect/openid-connect
 type googleOidcClaims struct {
 	Sub           string `json:"sub"` // stable Google user id
@@ -111,7 +70,7 @@ type googleOidcClaims struct {
 func HandleCallback(r *gin.Context) {
 	code := r.Query("code")
 	state := r.Query("state")
-	sess := oauth_basic.MustLoadSession(r, state)
+	sess := api_oauth.MustLoadSession(r, state)
 	if len(sess) == 0 {
 		r.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "state not found"})
 		return
@@ -132,7 +91,7 @@ func HandleCallback(r *gin.Context) {
 		Str("exchange_code", code).
 		Str("verifier", verifier).
 		Msg("handling oauth callback")
-	tok, err := oauthConfig.Exchange(r, code, oauth2.SetAuthURLParam("code_verifier", verifier))
+	tok, err := shared_client.OauthConfig.Exchange(r, code, oauth2.SetAuthURLParam("code_verifier", verifier))
 	if err != nil {
 		log.Error().
 			Ctx(r).
@@ -147,7 +106,7 @@ func HandleCallback(r *gin.Context) {
 		return
 	}
 
-	idt, err := oidcVerifier.Verify(r, rawIdToken)
+	idt, err := shared_client.OidcVerifier.Verify(r, rawIdToken)
 	if err != nil {
 		log.Error().
 			Ctx(r).
@@ -186,7 +145,7 @@ func HandleCallback(r *gin.Context) {
 			if err == pgx.ErrNoRows {
 				existingAccountId = "acct_" + uuid.New().String()
 				isNewUser = true
-				err := oauth_basic.CreateAccount(r, existingAccountId)
+				err := api_oauth.CreateAccount(r, existingAccountId)
 				if err != nil {
 					log.Error().
 						Ctx(r).
@@ -215,7 +174,7 @@ func HandleCallback(r *gin.Context) {
 		TokenType:    tok.TokenType,
 		Scope:        "", // optional: persist actual granted scope string
 	}
-	if err := SaveGmailTokenRecord(r, existingAccountId, rec); err != nil {
+	if err := shared_client.SaveGmailTokenRecord(r, existingAccountId, rec); err != nil {
 		log.Error().
 			Ctx(r).
 			Str("existingAccountId", existingAccountId).
@@ -244,7 +203,7 @@ func HandleCallback(r *gin.Context) {
 
 		if isNewUser {
 			bkg := context.WithValue(context.Background(), "accountId", existingAccountId)
-			client, err := GmailClient(bkg, existingAccountId)
+			client, err := shared_client.GmailClient(bkg, existingAccountId)
 			if err != nil {
 				log.Error().
 					Ctx(r).

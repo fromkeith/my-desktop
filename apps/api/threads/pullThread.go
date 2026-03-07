@@ -3,7 +3,7 @@ package threads
 import (
 	"fromkeith/my-desktop-server/shared/globals"
 	"fromkeith/my-desktop-server/shared/gmail/client"
-	"fromkeith/my-desktop-server/shared/gmail/data"
+	"fromkeith/my-desktop-server/shared/threads"
 	"strconv"
 	"time"
 
@@ -12,32 +12,14 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-type MessageBasic struct {
-	MessageId    string          `validate:"required" json:"messageId" bson:"messageId"`
-	InternalDate int64           `validate:"required" json:"internalDate" bson:"internalDate"`
-	Sender       data.PersonInfo `json:"sender" bson:"sender"`
-	Subject      string          `json:"subject" bson:"subject"`
-	Snippet      string          `json:"snippet" bson:"snippet"`
-	Labels       []string        `validate:"required" json:"labels" bson:"labels"`
-} // @name MessageBasic
-
-type ThreadEntry struct {
-	Messages               []MessageBasic `validate:"required" json:"messages" bson:"messages"`
-	UpdatedAt              time.Time      `validate:"required" json:"updatedAt" bson:"updatedAt"`
-	ThreadId               string         `validate:"required" json:"threadId" bson:"threadId"`
-	MostRecentInternalDate int64          `validate:"required" json:"mostRecentInternalDate" bson:"mostRecentInternalDate"`
-	Categories             []string       `validate:"required" json:"categories" bson:"categories"`
-	Tags                   []string       `validate:"required" json:"tags" bson:"tags"`
-} // @name Thread
-
 type SyncCheckpoint struct {
 	ThreadId  string `validate:"required" json:"threadId"`
 	UpdatedAt string `validate:"required" json:"updatedAt"`
 } // @name CheckpointThreads
 
 type PullThreadResponse struct {
-	Threads    []ThreadEntry  `validate:"required" json:"threads"`
-	Checkpoint SyncCheckpoint `validate:"required" json:"checkpoint"`
+	Threads    []threads.ThreadEntry `validate:"required" json:"threads"`
+	Checkpoint SyncCheckpoint        `validate:"required" json:"checkpoint"`
 } // @name PullThreadResponse
 
 // PullThread godoc
@@ -84,7 +66,7 @@ func PullThread(r *gin.Context) {
 	}
 	defer cursor.Close(r)
 
-	var messages []ThreadEntry
+	var messages []threads.ThreadEntry
 	if err := cursor.All(r, &messages); err != nil {
 		r.JSON(500, gin.H{"error": err.Error()})
 		return
