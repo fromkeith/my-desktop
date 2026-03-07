@@ -1,0 +1,11 @@
+{
+  "name": "@my-desktop/messageToThread",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "build": "node ../../scripts/go-build.mjs -o messageToThread.exe .",
+    "dev": "go run .",
+    "start": "./messageToThread.exe",
+    "deps:go": "go mod download"
+  }
+}

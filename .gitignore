@@ -28,11 +28,13 @@ dist-ssr
 *.sqlite3
 *.exe
 # auto generated via: npm run models
-src/lib/models/server.ts
-server/.mongodb/
-server/.mongod/
-server/.mongot/
-server/.kafka-data/
-server/.postgres-data/
-server/.pgadmin-data/
-server/.rabbitmq-data/
+apps/web/src/lib/models/server.ts
+docker/.mongodb/
+docker/.mongod/
+docker/.mongot/
+docker/.kafka-data/
+docker/.postgres-data/
+docker/.pgadmin-data/
+docker/.rabbitmq-data/
+
+.turbo

@@ -1,0 +1,11 @@
+{
+  "name": "@my-desktop/gemini",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "build": "node ../../scripts/go-build.mjs -o gemini.exe .",
+    "dev": "go run .",
+    "start": "./gemini.exe",
+    "deps:go": "go mod download"
+  }
+}

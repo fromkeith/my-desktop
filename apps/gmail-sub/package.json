@@ -1,0 +1,11 @@
+{
+  "name": "@my-desktop/gmail-sub",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "build": "node ../../scripts/go-build.mjs -o gmail-sub.exe .",
+    "dev": "go run .",
+    "start": "./gmail-sub.exe",
+    "deps:go": "go mod download"
+  }
+}

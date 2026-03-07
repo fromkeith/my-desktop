@@ -1,0 +1,12 @@
+{
+  "name": "@my-desktop/api",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "build": "node ../../scripts/go-build.mjs -tags=jsoniter -o my-desktop-server.exe .",
+    "dev": "go run -tags=jsoniter .",
+    "start": "./my-desktop-server.exe",
+    "models": "swag init --parseVendor --parseDependency",
+    "deps:go": "go mod download"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "@my-desktop/email-injestor",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "build": "node ../../scripts/go-build.mjs -o email-injestor.exe .",
+    "dev": "go run .",
+    "start": "./email-injestor.exe",
+    "deps:go": "go mod download"
+  }
+}

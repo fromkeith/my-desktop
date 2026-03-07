@@ -1,0 +1,8 @@
+{
+    "name": "@my-desktop/server-shared",
+    "private": true,
+    "version": "0.0.0",
+    "scripts": {
+        "deps:go": "go mod download"
+    }
+}
