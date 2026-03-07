@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "scripts": {
     "build": "node ../../scripts/go-build.mjs -tags=jsoniter -o my-desktop-server.exe .",
-    "dev": "go run -tags=jsoniter .",
+    "dev": "node ../../scripts/go-dev.mjs",
     "start": "./my-desktop-server.exe",
     "models": "swag init --parseVendor --parseDependency",
     "deps:go": "go mod download"
