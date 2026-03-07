@@ -2,14 +2,14 @@ package main
 
 import (
 	"context"
+	"fromkeith/my-desktop-server/apps/api/messages"
+	"fromkeith/my-desktop-server/apps/api/messages/aggregate"
+	"fromkeith/my-desktop-server/apps/api/middleware"
+	"fromkeith/my-desktop-server/apps/api/people"
 	"fromkeith/my-desktop-server/shared/globals"
 	_ "fromkeith/my-desktop-server/shared/globals"
 	"fromkeith/my-desktop-server/shared/gmail/client"
 	"fromkeith/my-desktop-server/shared/gmail/data"
-	"fromkeith/my-desktop-server/shared/messages"
-	"fromkeith/my-desktop-server/shared/messages/aggregate"
-	"fromkeith/my-desktop-server/shared/middleware"
-	"fromkeith/my-desktop-server/shared/people"
 	"fromkeith/my-desktop-server/shared/threads"
 
 	"github.com/rs/zerolog/log"
